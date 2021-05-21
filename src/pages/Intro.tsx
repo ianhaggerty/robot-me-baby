@@ -60,7 +60,7 @@ const Intro = () => {
       justifyContent="space-around"
       alignItems="center"
       flexDirection="column"
-      height={rows}
+      minHeight={rows}
       width={cols}
     >
       <Box>

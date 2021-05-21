@@ -18,7 +18,7 @@ enum Sounds {
 }
 
 function playSound(file: Sounds, volume = 0.5) {
-  sound.play(path.resolve(__dirname, file), volume);
+  sound.play(path.resolve(__dirname, "..", "..", "sounds", file), volume);
 }
 
 export { Sounds, playSound };

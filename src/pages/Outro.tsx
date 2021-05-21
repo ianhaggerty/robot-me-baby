@@ -47,7 +47,7 @@ const Outro = () => {
       justifyContent="space-around"
       alignItems="center"
       width={cols}
-      height={rows}
+      minHeight={rows}
     >
       <Box flexDirection="column" alignItems="center">
         <Box>
