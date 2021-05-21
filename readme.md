@@ -4,7 +4,7 @@
 
 ![intro](screenshots/intro.jpg)
 
-### On the whole, **it's a ridiculous game for ridiculous people**. But I'm sure learning a ton pulling it together. Definitely a **WIP**. Stay tuned for more *CLI Awesomeness*.
+### On the whole, **it's a ridiculous game for ridiculous people**. Definitely a **WIP**. Stay tuned for more *CLI Awesomeness*.
 
 ## Usage
 
