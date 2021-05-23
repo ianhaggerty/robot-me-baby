@@ -1,3 +1,6 @@
+[![wakatime](https://wakatime.com/badge/github/ianhaggerty/robot-me-baby.svg)](https://wakatime.com/badge/github/ianhaggerty/robot-me-baby)
+
+
 # robot-me-baby
 
 **robot-me-baby** is little demo app designed to demonstrate the features and power of [ink](https://github.com/vadimdemedes/ink) - a react renderer for the CLI.
