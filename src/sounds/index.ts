@@ -11,6 +11,7 @@ enum Sounds {
   Explode = "nuclear_explode.mp3",
   Confirm = "retro-confirm.wav",
   Speak = "speak.wav",
+  IamRobot = "i_am_robot_2.wav",
   Stomps = "stomps.wav",
   Sweep = "sweep.wav",
   TypeBeep = "type-beep.wav",
