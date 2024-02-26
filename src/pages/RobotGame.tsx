@@ -37,7 +37,8 @@ const RobotGame = () => {
 
   const sayYes = () => playSound(Sounds.Yes);
   const sayNo = () => playSound(Sounds.No);
-  const sayIamRobot = () => playSound(Sounds.Speak);
+  const sayIamRobot = () =>
+    playSound([Sounds.Speak, Sounds.IamRobot][Math.floor(Math.random() * 2)]);
 
   const windowHeight = rows;
   const windowWidth = columns - 27; // TODO soft code?
