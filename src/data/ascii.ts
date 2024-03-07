@@ -1,22 +1,6 @@
 import fs from "fs";
 import path from "path";
 
-export const ian = `
-                        
-                        
-.--.           _..._    
-|__|         .'     '.  
-.--.        .   .-.   . 
-|  |   __   |  '   '  | 
-|  |.:--.'. |  |   |  | 
-|  / |   \\ ||  |   |  | 
-|  \`" __ | ||  |   |  | 
-|__|.'.''| ||  |   |  | 
-   / /   | ||  |   |  | 
-   \\ \\._,\\ '|  |   |  | 
-    \`--'  \`"'--'   '--' 
-`;
-
 export const ian2 = `██▓▄▄▄      ███▄    █ 
 ▓██▒████▄    ██ ▀█   █ 
 ▒██▒██  ▀█▄ ▓██  ▀█ ██▒
@@ -38,5 +22,3 @@ const readFile = (fileName: string) =>
   fs.readFileSync(path.join(__dirname, fileName)).toString();
 
 export const myFace = readFile("my-face.txt");
-
-export const thanks = readFile("thanks.txt");

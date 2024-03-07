@@ -1,14 +1,19 @@
 {
   "name": "robot-me-baby",
   "version": "0.1.0",
-  "description": "A ridiculous app for ridiculous people.",
+  "description": "A little game for the CLI.",
   "main": "src/index.tsx",
+  "nodemonConfig": {
+    "watch": [
+      "lib"
+    ],
+    "ext": "js,txt"
+  },
   "scripts": {
-    "dev": "babel-node --extensions \".ts\",\".tsx\" src/index.tsx",
-    "watch": "nodemon -I --exec npm run start",
-    "test": "jest --env=node --colors",
-    "compile": "npx babel src --out-dir lib --ignore 'src/**/*.test.js','src/**/*.test.ts','src/**/*.test.jsx','src/**/*.test.tsx' --copy-files --no-copy-ignored --extensions '.ts','.tsx'",
-    "start": "node lib/index.js"
+    "nodemon": "npx nodemon -I lib/index.js",
+    "watch": "npm run compile -- --watch",
+    "compile": "npx babel src --out-dir lib --extensions \".ts,.tsx\" --copy-files",
+    "start": "npx node lib/index.js"
   },
   "keywords": [],
   "author": "",
@@ -33,7 +38,6 @@
     "@babel/preset-react": "^7.13.13",
     "@babel/preset-typescript": "^7.13.0",
     "@types/figlet": "^1.5.1",
-    "@types/jest": "^26.0.23",
     "@types/node": "^15.3.0",
     "@types/react": "^17.0.5",
     "@types/react-router": "^5.1.14",
@@ -41,9 +45,8 @@
     "@typescript-eslint/parser": "^4.24.0",
     "eslint": "^7.26.0",
     "eslint-plugin-react": "^7.23.2",
-    "jest": "^26.6.3",
     "nodemon": "^2.0.7",
-    "ts-jest": "^26.5.6",
-    "typescript": "^4.2.4"
+    "typescript": "^4.2.4",
+    "node": "^21.7.0"
   }
 }

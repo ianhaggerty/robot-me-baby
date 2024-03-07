@@ -75,7 +75,7 @@ const Intro = () => {
           <Delayed delay={2000}>
             <TypeIn>
               <>
-                <Text>A Ridiculous App - Made By</Text>
+                <Text>A little CLI game - Made By</Text>
               </>
             </TypeIn>
           </Delayed>

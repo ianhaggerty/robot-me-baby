@@ -1,22 +1,43 @@
 [![wakatime](https://wakatime.com/badge/github/ianhaggerty/robot-me-baby.svg)](https://wakatime.com/badge/github/ianhaggerty/robot-me-baby)
 
-
 # robot-me-baby
 
 **robot-me-baby** is little demo app designed to demonstrate the features and power of [ink](https://github.com/vadimdemedes/ink) - a react renderer for the CLI.
 
 ![intro](screenshots/intro.jpg)
 
-### Definitely a **WIP**. Stay tuned for more *CLI Awesomeness*.
-
 ## Usage
 
+Download and install.
+
+```shell
+git clone https://github.com/ianhaggerty/robot-me-baby
+cd robot-me-baby
+npm install .
 ```
-> git clone https://github.com/ianhaggerty/robot-me-baby
-> cd robot-me-baby
-> npm install --production
-> npm run start
+
+### Production
+
+Compile and run.
+
+```shell
+npm run compile
+npm run start
 ```
+
+### Development
+
+1. Spin up a babel command to watch the `src` directory for changes.
+
+   ```shell
+   npm run watch
+   ```
+
+2. In another CLI instance, use nodemon to watch the `lib` directory.
+
+   ```shell
+   npm run nodemon
+   ```
 
 ## 🌎 Road Map
 
