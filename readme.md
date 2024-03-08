@@ -6,11 +6,7 @@
 
 ![intro](screenshots/intro.png)
 
-<<<<<<< HEAD
 ![game](screenshots/game.png)
-=======
-![game](screenshots\game.png)
->>>>>>> 4681e21464505ddb55ab2521b7cf5fb06339341d
 
 ![explode](screenshots/explode.png)
 
