@@ -9,6 +9,19 @@
     ],
     "ext": "js,txt"
   },
+  "babel": {
+    "presets": [
+      "@babel/preset-env",
+      "@babel/preset-react",
+      [
+        "@babel/preset-typescript",
+        {
+          "isTSX": true,
+          "allExtensions": true
+        }
+      ]
+    ]
+  },
   "scripts": {
     "nodemon": "npx nodemon -I lib/index.js",
     "watch": "npm run compile -- --watch",
