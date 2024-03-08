@@ -94,6 +94,10 @@ To the awesome people behind [Ink](https://github.com/vadimdemedes/ink), the Rea
 
 \+ The Gazzillion other people whose work I've sponged and reincarnated as my own. Projects like this have a heap of dependencies.
 
+## A Note from the Author
+
+Thanks for your interest! Please see my [GitHub](https://github.com/ianhaggerty) or [Linkedin](https://www.linkedin.com/in/ihaggerty/) to stay updated.
+
 ## MIT License
 
 Copyright (c) 2021 Ian Haggerty
