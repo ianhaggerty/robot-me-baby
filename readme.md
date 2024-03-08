@@ -4,7 +4,13 @@
 
 **robot-me-baby** is little demo app designed to demonstrate the features and power of [ink](https://github.com/vadimdemedes/ink) - a react renderer for the CLI.
 
-![intro](screenshots/intro.jpg)
+![intro](screenshots/intro.png)
+
+![game](screenshots\game.png)
+
+![explode](screenshots/explode.png)
+
+![outro](screenshots/outro.jpg)
 
 ## Usage
 
