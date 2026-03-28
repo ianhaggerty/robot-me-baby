@@ -24,12 +24,12 @@ const KeyPrompt = ({
   isActive = true,
   ...otherProps
 }: KeyPromptProps) => {
-  const { isFocused } = useFocus({ autoFocus: true, isActive });
+  const { isFocused } = useFocus({ autoFocus: true });
 
   useInput((input, keyMeta) => {
     if (
       (isPressed(input, keyMeta) && isActive) ||
-      (keyMeta.return && isFocused)
+      (keyMeta.return && isFocused && isActive)
     ) {
       onPressed();
     }
