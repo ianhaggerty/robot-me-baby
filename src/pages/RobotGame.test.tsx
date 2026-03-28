@@ -30,9 +30,13 @@ vi.mock("../assets/sounds.js", () => ({
   },
 }));
 
-function renderRobotGame(props: { initialRobot?: Robot; initialX?: number; initialY?: number } = {}) {
+function renderRobotGame(
+  props: { initialRobot?: Robot; initialX?: number; initialY?: number } = {},
+) {
   return render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
       <RobotGame {...props} />
     </MemoryRouter>,
   );
@@ -63,7 +67,7 @@ describe("RobotGame", () => {
 
   it("flips the robot when pressing right arrow", async () => {
     const { lastFrame, stdin } = renderRobotGame({
-      initialRobot: robot,
+      initialRobot: robot, // defaults to direction left
       initialX: 0,
       initialY: 0,
     });
@@ -73,7 +77,9 @@ describe("RobotGame", () => {
     stdin.write("\x1B[C");
 
     await vi.waitFor(() => {
-      expect(frameContainsArt(lastFrame() ?? "", flippedRobot.toString())).toBe(true);
+      expect(frameContainsArt(lastFrame() ?? "", flippedRobot.toString())).toBe(
+        true,
+      );
     });
   });
 
@@ -87,7 +93,9 @@ describe("RobotGame", () => {
     stdin.write("e");
 
     await vi.waitFor(() => {
-      expect(frameContainsArt(lastFrame() ?? "", rawExplosions[0].str)).toBe(true);
+      expect(frameContainsArt(lastFrame() ?? "", rawExplosions[0].str)).toBe(
+        true,
+      );
     });
   });
 
