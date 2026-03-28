@@ -1,4 +1,5 @@
 import { DirectionX } from "../utility/enums.js";
+import { Color } from "../assets/colors.js";
 import {
   reverse,
   shuffle,
@@ -10,6 +11,7 @@ export type RobotData = {
   str: string;
   direction: DirectionX;
   name: string;
+  color?: Color;
   explodeCount?: number;
   maxExplodeCount?: number;
 };
@@ -21,6 +23,7 @@ class Robot {
   private readonly _str: string;
   private readonly _dirn: DirectionX;
   private readonly _name: string;
+  private readonly _color: Color;
   private readonly _explodeCount: number;
   private readonly _maxExplodeCount: number;
 
@@ -28,12 +31,14 @@ class Robot {
     str,
     direction,
     name,
+    color = Color.MUTED_WHITE,
     explodeCount = 0,
     maxExplodeCount = 3,
   }: RobotData) {
     this._str = str;
     this._dirn = direction;
     this._name = name;
+    this._color = color;
     this._explodeCount = explodeCount;
     this._maxExplodeCount = maxExplodeCount;
   }
@@ -56,14 +61,27 @@ class Robot {
     return this._dirn;
   }
 
+  public get color() {
+    return this._color;
+  }
+
+  public setColor(newColor: Color) {
+    if (this._color === newColor) {
+      return this;
+    }
+
+    return this._clone({ color: newColor });
+  }
+
   private _clone({
     str = this._str,
     name = this._name,
     direction = this._dirn,
+    color = this._color,
     explodeCount = this._explodeCount,
     maxExplodeCount = this._maxExplodeCount,
   }: Partial<RobotData>) {
-    return new Robot({ str, name, direction, explodeCount, maxExplodeCount });
+    return new Robot({ str, name, direction, color, explodeCount, maxExplodeCount });
   }
 
   public setDirection(newDirn: DirectionX) {

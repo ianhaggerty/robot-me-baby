@@ -14,7 +14,6 @@ import ExplosionCmpt from "../components/Explosion.js";
 import Separator from "../components/Separator.js";
 import Robot from "../models/Robot.js";
 import Explosion from "../models/Explosion.js";
-import { Color } from "../assets/colors.js";
 import rawRobots from "../assets/robots.js";
 import colors from "../assets/colors.js";
 import rawExplosions from "../assets/explosions.js";
@@ -23,36 +22,26 @@ const robots = rawRobots.map(
   (raw) =>
     new Robot({
       str: raw.str,
-      direction: raw.direction === "right" ? DirectionX.Right : DirectionX.Left,
+      direction: raw.direction,
       name: generateName(),
-    })
+    }),
 );
 
 const explosions = rawExplosions.map((raw) => new Explosion(raw));
 
 type RobotGameProps = {
   initialRobot?: Robot;
-  initialColor?: Color;
-  initialDirection?: DirectionX;
   initialX?: number;
   initialY?: number;
 };
 
 const RobotGame = ({
-  initialRobot = robots[0],
-  initialColor = colors[0],
-  initialDirection,
+  initialRobot = robots[0].setDirection(DirectionX.Right),
   initialX = 0,
   initialY = 0,
 }: RobotGameProps = {}) => {
-  const startRobot =
-    initialDirection != null && initialDirection !== initialRobot.direction
-      ? initialRobot.setDirection(initialDirection)
-      : initialRobot;
-
   // react state
-  const [color, setColor] = useState(initialColor);
-  const [robot, setRobot] = useState(startRobot);
+  const [robot, setRobot] = useState(initialRobot);
   const [paddingLeft, setPaddingLeft] = useState(initialX);
   const [paddingTop, setPaddingTop] = useState(initialY);
 
@@ -81,12 +70,14 @@ const RobotGame = ({
   const changeRobot = () => {
     playSound(Sounds.Confirm, 0.2);
     setRobot((prevRobot) =>
-      selectNext(prevRobot, robots, (r1, r2) => r1.name === r2.name)
+      selectNext(prevRobot, robots, (r1, r2) => r1.name === r2.name),
     );
   };
   const changeColor = () => {
     playSound(Sounds.Glitch, 0.2);
-    setColor((prevColor) => selectNext(prevColor, colors));
+    setRobot((prevRobot) =>
+      prevRobot.setColor(selectNext(prevRobot.color, colors)),
+    );
   };
 
   const moveUp = () => {
@@ -97,18 +88,24 @@ const RobotGame = ({
     return true;
   };
   const moveLeft = () => {
+    if (robot.direction !== DirectionX.Left) {
+      setRobot((prevRobot) => prevRobot.setDirection(DirectionX.Left));
+      return true;
+    }
     if (paddingLeft <= 0) {
       return false;
     }
-    setRobot((prevRobot) => prevRobot.setDirection(DirectionX.Left));
     setPaddingLeft((prevPaddingLeft) => prevPaddingLeft - 1);
     return true;
   };
   const moveRight = () => {
+    if (robot.direction !== DirectionX.Right) {
+      setRobot((prevRobot) => prevRobot.setDirection(DirectionX.Right));
+      return true;
+    }
     if (paddingLeft + robot.width >= windowWidth - 2) {
       return false;
     }
-    setRobot((prevRobot) => prevRobot.setDirection(DirectionX.Right));
     setPaddingLeft((prevPaddingLeft) => prevPaddingLeft + 1);
     return true;
   };
@@ -152,7 +149,7 @@ const RobotGame = ({
           {isExploding ? (
             <ExplosionCmpt explosion={explosions[0]} />
           ) : (
-            <RobotCmpt robot={robot} color={color} />
+            <RobotCmpt robot={robot} />
           )}
         </Box>
         <Box marginLeft={2} flexDirection="column">

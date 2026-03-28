@@ -2,16 +2,9 @@ import React from "react";
 import { Box, Text } from "ink";
 import Robot from "../models/Robot.js";
 
-import { Color } from "../assets/colors.js";
-
-type RobotProps = {
-  robot: Robot;
-  color?: Color;
-};
-
-const RobotCmpt = ({ robot, color = Color.MUTED_WHITE }: RobotProps) => (
+const RobotCmpt = ({ robot }: { robot: Robot }) => (
   <Box flexDirection="column" alignItems="center" justifyContent="center">
-    <Text color={color}>{robot.toString()}</Text>
+    <Text color={robot.color}>{robot.toString()}</Text>
     <Text color="magentaBright">{robot.name}</Text>
     {robot.isExploded ? <Text color="red">is no more 😥</Text> : null}
   </Box>

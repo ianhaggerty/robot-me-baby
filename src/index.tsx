@@ -13,7 +13,7 @@ clear(true);
 // Increase stdin listeners (stop node complaining)
 process.stdin.setMaxListeners(100);
 
-render(
+const app = render(
   <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
     <Routes>
       <Route path="/" element={<Intro />} />
@@ -22,3 +22,5 @@ render(
     </Routes>
   </MemoryRouter>
 );
+
+app.waitUntilExit().then(() => clear(true));
