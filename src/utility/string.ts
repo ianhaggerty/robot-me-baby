@@ -1,3 +1,8 @@
+import {
+  uniqueNamesGenerator,
+  names,
+  adjectives,
+} from "unique-names-generator";
 import { randomSelect } from "./array.js";
 import { palindromeMap } from "../data/palindromes.js";
 
@@ -74,3 +79,12 @@ export const swapPalindromes = (str: string): string => {
 export const repeatChar = (num: number, char = " ") => {
   return Array(num).fill(char).join("");
 };
+
+export const generateName = () =>
+  capitalize(
+    uniqueNamesGenerator({
+      dictionaries: [adjectives, names],
+      length: 2,
+      separator: " ",
+    })
+  );

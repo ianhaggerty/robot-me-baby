@@ -3,26 +3,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const artDir = path.resolve(path.dirname(__filename), "..", "..", "art");
 
-export const ian2 = `██▓▄▄▄      ███▄    █ 
-▓██▒████▄    ██ ▀█   █ 
-▒██▒██  ▀█▄ ▓██  ▀█ ██▒
-░██░██▄▄▄▄██▓██▒  ▐▌██▒
-░██░▓█   ▓██▒██░   ▓██░
-░▓  ▒▒   ▓▒█░ ▒░   ▒ ▒ 
-▒ ░ ▒   ▒▒ ░ ░░   ░ ▒░
-▒ ░ ░   ▒     ░   ░ ░ 
-░       ░  ░        ░`;
+const readArt = (file: string) =>
+  fs.readFileSync(path.join(artDir, file), "utf8");
 
-export const robotMeBaby = `██████╗ ██████╗██████╗ ██████╗████████╗ ███╗   ██████████╗  ██████╗ █████╗██████╗██╗   ██╗
-██╔══████╔═══████╔══████╔═══██╚══██╔══╝ ████╗ ██████╔════╝  ██╔══████╔══████╔══██╚██╗ ██╔╝
-██████╔██║   ████████╔██║   ██║  █████████╔████╔██████████████████╔█████████████╔╝╚████╔╝ 
-██╔══████║   ████╔══████║   ██║  ██╚════██║╚██╔╝████╔══╚════██╔══████╔══████╔══██╗ ╚██╔╝  
-██║  ██╚██████╔██████╔╚██████╔╝  ██║    ██║ ╚═╝ █████████╗  ██████╔██║  ████████╔╝  ██║   
-╚═╝  ╚═╝╚═════╝╚═════╝ ╚═════╝   ╚═╝    ╚═╝     ╚═╚══════╝  ╚═════╝╚═╝  ╚═╚═════╝   ╚═╝`;
-
-const readFile = (fileName: string) =>
-  fs.readFileSync(path.join(__dirname, fileName)).toString();
-
-export const myFace = readFile("my-face.txt");
+export const ian2 = readArt("ian.txt");
+export const robotMeBaby = readArt("robot-me-baby.txt");
+export const myFace = readArt("my-face.txt");

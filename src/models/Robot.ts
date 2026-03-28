@@ -42,7 +42,6 @@ class Robot {
     return this._name;
   }
 
-  // TODO remove?? not being used
   public setName(newName: string) {
     if (newName === this._name) {
       return this;

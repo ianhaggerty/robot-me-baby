@@ -6,7 +6,6 @@ export function selectNext<Type>(
 ): Type {
   const next = randomSelect(arr);
 
-  // TODO infinite loop if arr is empty
   if (equals(prev, next)) {
     return selectNext(prev, arr);
   }

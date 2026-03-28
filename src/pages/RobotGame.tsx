@@ -4,6 +4,7 @@ import useStdoutDimensions from "../hooks/useStdoutDimensions.js";
 import { useNavigate } from "react-router";
 
 import { selectNext } from "../utility/array.js";
+import { generateName } from "../utility/string.js";
 import { DirectionX, Key } from "../utility/enums.js";
 import { playSound, Sounds } from "../sounds/index.js";
 
@@ -11,16 +12,49 @@ import KeyPrompt from "../components/KeyPrompt.js";
 import RobotCmpt from "../components/Robot.js";
 import ExplosionCmpt from "../components/Explosion.js";
 import Separator from "../components/Separator.js";
-import robots from "../data/robots.js";
+import Robot from "../models/Robot.js";
+import Explosion from "../models/Explosion.js";
+import { Color } from "../data/colors.js";
+import rawRobots from "../data/robots.js";
 import colors from "../data/colors.js";
-import explosions from "../data/explosions.js";
+import rawExplosions from "../data/explosions.js";
 
-const RobotGame = () => {
+const robots = rawRobots.map(
+  (raw) =>
+    new Robot({
+      str: raw.str,
+      direction: raw.direction === "right" ? DirectionX.Right : DirectionX.Left,
+      name: generateName(),
+    })
+);
+
+const explosions = rawExplosions.map((raw) => new Explosion(raw));
+
+type RobotGameProps = {
+  initialRobot?: Robot;
+  initialColor?: Color;
+  initialDirection?: DirectionX;
+  initialX?: number;
+  initialY?: number;
+};
+
+const RobotGame = ({
+  initialRobot = robots[0],
+  initialColor = colors[0],
+  initialDirection,
+  initialX = 0,
+  initialY = 0,
+}: RobotGameProps = {}) => {
+  const startRobot =
+    initialDirection != null && initialDirection !== initialRobot.direction
+      ? initialRobot.setDirection(initialDirection)
+      : initialRobot;
+
   // react state
-  const [color, setColor] = useState(colors[0]);
-  const [robot, setRobot] = useState(robots[0]);
-  const [paddingLeft, setPaddingLeft] = useState(0);
-  const [paddingTop, setPaddingTop] = useState(0);
+  const [color, setColor] = useState(initialColor);
+  const [robot, setRobot] = useState(startRobot);
+  const [paddingLeft, setPaddingLeft] = useState(initialX);
+  const [paddingTop, setPaddingTop] = useState(initialY);
 
   // callbacks
   const [isExploding, setIsExploding] = useState(false);
@@ -41,7 +75,7 @@ const RobotGame = () => {
     playSound([Sounds.Speak, Sounds.IamRobot][Math.floor(Math.random() * 2)]);
 
   const windowHeight = rows;
-  const windowWidth = columns - 27; // TODO soft code?
+  const windowWidth = columns - 27;
   const isRobotAvailable = !robot.isExploded && !isExploding;
 
   const changeRobot = () => {
@@ -87,8 +121,6 @@ const RobotGame = () => {
       setRobot((prevRobot) => prevRobot.explode());
       playSound(Sounds.Explode, 1);
 
-      // TODO refactor out to React-Router?
-      // TODO will throw if component unmounted
       setIsExploding(true);
       setTimeout(() => {
         setIsExploding(false);
@@ -103,7 +135,6 @@ const RobotGame = () => {
     if (!isStomping) {
       setIsStomping(true);
       playSound(Sounds.Stomps);
-      // TODO will throw if component unmounted
       setTimeout(() => setIsStomping(false), 1000);
     }
   }, [paddingLeft, paddingTop]);
