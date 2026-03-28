@@ -6,7 +6,7 @@ import { useNavigate } from "react-router";
 import { selectNext } from "../utility/array.js";
 import { generateName } from "../utility/string.js";
 import { DirectionX, Key } from "../utility/enums.js";
-import { playSound, Sounds } from "../sounds/index.js";
+import { playSound, Sounds } from "../assets/sounds.js";
 
 import KeyPrompt from "../components/KeyPrompt.js";
 import RobotCmpt from "../components/Robot.js";
@@ -14,10 +14,10 @@ import ExplosionCmpt from "../components/Explosion.js";
 import Separator from "../components/Separator.js";
 import Robot from "../models/Robot.js";
 import Explosion from "../models/Explosion.js";
-import { Color } from "../data/colors.js";
-import rawRobots from "../data/robots.js";
-import colors from "../data/colors.js";
-import rawExplosions from "../data/explosions.js";
+import { Color } from "../assets/colors.js";
+import rawRobots from "../assets/robots.js";
+import colors from "../assets/colors.js";
+import rawExplosions from "../assets/explosions.js";
 
 const robots = rawRobots.map(
   (raw) =>

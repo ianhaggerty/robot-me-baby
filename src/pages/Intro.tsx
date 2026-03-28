@@ -3,9 +3,9 @@ import { Box, Text, useInput, useApp } from "ink";
 import { useNavigate } from "react-router";
 import useStdoutDimensions from "../hooks/useStdoutDimensions.js";
 
-import { ian2, robotMeBaby } from "../data/ascii.js";
+import { ian2, robotMeBaby } from "../assets/ascii.js";
 import FadeIn from "../transforms/FadeIn.js";
-import { playSound, Sounds } from "../sounds/index.js";
+import { playSound, Sounds } from "../assets/sounds.js";
 import TypeIn from "../transforms/TypeIn.js";
 import Delayed from "../components/Delayed.js";
 

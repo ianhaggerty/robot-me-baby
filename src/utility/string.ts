@@ -4,7 +4,7 @@ import {
   adjectives,
 } from "unique-names-generator";
 import { randomSelect } from "./array.js";
-import { palindromeMap } from "../data/palindromes.js";
+import { palindromeMap } from "../assets/palindromes.js";
 
 export const reverse = (str: string) => {
   return str.split("").reverse().join("");

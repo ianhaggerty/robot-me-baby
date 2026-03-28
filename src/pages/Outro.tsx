@@ -3,7 +3,7 @@ import { Text, useInput, Box, useApp } from "ink";
 import useStdoutDimensions from "../hooks/useStdoutDimensions.js";
 import figlet from "figlet";
 
-import { myFace } from "../data/ascii.js";
+import { myFace } from "../assets/ascii.js";
 import useAccumulate from "../hooks/useAccumulate.js";
 import useBlink from "../hooks/useBlink.js";
 
