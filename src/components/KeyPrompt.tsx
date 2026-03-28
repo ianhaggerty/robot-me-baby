@@ -1,9 +1,9 @@
 import React from "react";
 import { Key as KeyMeta, Text, useInput, useFocus } from "ink";
-import { capitalize } from "../utility/string";
+import { capitalize } from "../utility/string.js";
 
-import { Key } from "../utility/enums";
-import FocusText from "./FocusText";
+import { Key } from "../utility/enums.js";
+import FocusText from "./FocusText.js";
 
 type KeyPromptProps = {
   button: Key;

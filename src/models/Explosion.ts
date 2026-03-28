@@ -1,4 +1,4 @@
-import { ExplosionRawData } from "../data/explosions";
+import { ExplosionRawData } from "../data/explosions.js";
 
 class Explosion {
   private readonly _str: string;

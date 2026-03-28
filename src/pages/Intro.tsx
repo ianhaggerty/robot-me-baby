@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { Box, Text, useInput, useApp } from "ink";
-import { useHistory } from "react-router";
-import useStdoutDimensions from "ink-use-stdout-dimensions";
+import { useNavigate } from "react-router";
+import useStdoutDimensions from "../hooks/useStdoutDimensions.js";
 
-import { ian2, robotMeBaby } from "../data/ascii";
-import FadeIn from "../transforms/FadeIn";
-import { playSound, Sounds } from "../sounds/index";
-import TypeIn from "../transforms/TypeIn";
-import Delayed from "../components/Delayed";
+import { ian2, robotMeBaby } from "../data/ascii.js";
+import FadeIn from "../transforms/FadeIn.js";
+import { playSound, Sounds } from "../sounds/index.js";
+import TypeIn from "../transforms/TypeIn.js";
+import Delayed from "../components/Delayed.js";
 
 const Intro = () => {
   const maxSpaces = 3;
   const maxTime = 30000;
   const interval = 1000;
 
-  const history = useHistory();
+  const navigate = useNavigate();
   const [cols, rows] = useStdoutDimensions();
   const { exit } = useApp();
 
@@ -36,7 +36,8 @@ const Intro = () => {
   // if space is pressed enough, navigate to app
   useEffect(() => {
     if (spaces === 0) {
-      return history.push("/robot-me-baby");
+      navigate("/robot-me-baby");
+      return;
     }
   }, [spaces]);
 

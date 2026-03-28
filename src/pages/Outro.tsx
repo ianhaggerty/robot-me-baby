@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Text, useInput, Box, useApp } from "ink";
-import useStdoutDimensions from "ink-use-stdout-dimensions";
+import useStdoutDimensions from "../hooks/useStdoutDimensions.js";
 import figlet from "figlet";
 
-import { myFace } from "../data/ascii";
-import useAccumulate from "../hooks/useAccumulate";
-import useBlink from "../hooks/useBlink";
+import { myFace } from "../data/ascii.js";
+import useAccumulate from "../hooks/useAccumulate.js";
+import useBlink from "../hooks/useBlink.js";
 
 const Outro = () => {
   const messages = ["Thanks\nFor\nPlaying\n:)", "Press\nQ\nTo Quit\n:("];
@@ -60,7 +60,7 @@ const Outro = () => {
         </Text>
       </Box>
       <Box>
-        <Text>{figlet.textSync(str, "ANSI Regular")}</Text>
+        <Text>{figlet.textSync(str, { font: "ANSI Regular" })}</Text>
       </Box>
     </Box>
   );

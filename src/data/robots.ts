@@ -1,12 +1,12 @@
-import { capitalize } from "../utility/string";
-import { DirectionX } from "../utility/enums";
+import { capitalize } from "../utility/string.js";
+import { DirectionX } from "../utility/enums.js";
 
 import {
   uniqueNamesGenerator,
   names,
   adjectives,
 } from "unique-names-generator";
-import Robot from "../models/Robot";
+import Robot from "../models/Robot.js";
 
 const getName = () =>
   capitalize(

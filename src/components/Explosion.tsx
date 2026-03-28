@@ -1,7 +1,7 @@
 import React from "react";
 import { Text, TextProps } from "ink";
-import Explosion from "../models/Explosion";
-import { Color } from "../data/colors";
+import Explosion from "../models/Explosion.js";
+import { Color } from "../data/colors.js";
 
 interface ExplosionProps extends TextProps {
   explosion: Explosion;

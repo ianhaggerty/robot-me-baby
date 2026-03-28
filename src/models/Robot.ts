@@ -1,10 +1,10 @@
-import { DirectionX } from "../utility/enums";
+import { DirectionX } from "../utility/enums.js";
 import {
   reverse,
   shuffle,
   transpose,
   swapPalindromes,
-} from "../utility/string";
+} from "../utility/string.js";
 
 export type RobotData = {
   str: string;

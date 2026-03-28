@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, useApp } from "ink";
-import useStdoutDimensions from "ink-use-stdout-dimensions";
-import { useHistory } from "react-router";
+import useStdoutDimensions from "../hooks/useStdoutDimensions.js";
+import { useNavigate } from "react-router";
 
-import { selectNext } from "../utility/array";
-import { DirectionX, Key } from "../utility/enums";
-import { playSound, Sounds } from "../sounds/index";
+import { selectNext } from "../utility/array.js";
+import { DirectionX, Key } from "../utility/enums.js";
+import { playSound, Sounds } from "../sounds/index.js";
 
-import KeyPrompt from "../components/KeyPrompt";
-import RobotCmpt from "../components/Robot";
-import ExplosionCmpt from "../components/Explosion";
-import Separator from "../components/Separator";
-import robots from "../data/robots";
-import colors from "../data/colors";
-import explosions from "../data/explosions";
+import KeyPrompt from "../components/KeyPrompt.js";
+import RobotCmpt from "../components/Robot.js";
+import ExplosionCmpt from "../components/Explosion.js";
+import Separator from "../components/Separator.js";
+import robots from "../data/robots.js";
+import colors from "../data/colors.js";
+import explosions from "../data/explosions.js";
 
 const RobotGame = () => {
   // react state
@@ -33,7 +33,7 @@ const RobotGame = () => {
   const { exit } = useApp();
 
   // routing logic
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const sayYes = () => playSound(Sounds.Yes);
   const sayNo = () => playSound(Sounds.No);
@@ -222,7 +222,7 @@ const RobotGame = () => {
             <KeyPrompt
               button={Key.Q}
               noun="quit"
-              onPressed={() => history.push("/outro")}
+              onPressed={() => navigate("/outro")}
               isPressed={(input) => input.toUpperCase() === Key.Q}
               isActive
             />

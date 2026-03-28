@@ -1,7 +1,7 @@
 import React, { PropsWithChildren, useEffect, useState } from "react";
 import { Transform } from "ink";
 
-import { sigmoid } from "../utility/maths";
+import { sigmoid } from "../utility/maths.js";
 
 type FadeInProps = PropsWithChildren<{
   inputStart?: number;

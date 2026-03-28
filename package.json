@@ -1,65 +1,29 @@
 {
   "name": "robot-me-baby",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "type": "module",
   "description": "A little game for the CLI.",
   "main": "src/index.tsx",
-  "nodemonConfig": {
-    "watch": [
-      "lib"
-    ],
-    "ext": "js,txt"
-  },
-  "babel": {
-    "presets": [
-      "@babel/preset-env",
-      "@babel/preset-react",
-      [
-        "@babel/preset-typescript",
-        {
-          "isTSX": true,
-          "allExtensions": true
-        }
-      ]
-    ]
-  },
   "scripts": {
-    "nodemon": "npx nodemon -I lib/index.js",
-    "watch": "npm run compile -- --watch",
-    "compile": "npx babel src --out-dir lib --extensions \".ts,.tsx\" --copy-files",
-    "start": "npx node lib/index.js"
+    "start": "tsx src/index.tsx",
+    "watch": "tsx --watch src/index.tsx"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "console-clear": "^1.1.1",
-    "figlet": "^1.5.0",
-    "ink": "^3.0.8",
-    "ink-big-text": "^1.2.0",
-    "ink-gradient": "^2.0.0",
-    "ink-use-stdout-dimensions": "^1.0.5",
-    "react": "^16",
-    "react-router": "^5.2.0",
+    "figlet": "^1.7.0",
+    "ink": "^6.8.0",
+    "react": "^19.0.0",
+    "react-router": "^6.30.0",
     "sound-play": "^1.1.0",
-    "unique-names-generator": "^4.5.0"
+    "unique-names-generator": "^4.7.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.13.16",
-    "@babel/core": "^7.14.2",
-    "@babel/node": "^7.14.2",
-    "@babel/preset-env": "^7.14.2",
-    "@babel/preset-react": "^7.13.13",
-    "@babel/preset-typescript": "^7.13.0",
-    "@types/figlet": "^1.5.1",
-    "@types/node": "^15.3.0",
-    "@types/react": "^17.0.5",
-    "@types/react-router": "^5.1.14",
-    "@typescript-eslint/eslint-plugin": "^4.24.0",
-    "@typescript-eslint/parser": "^4.24.0",
-    "eslint": "^7.26.0",
-    "eslint-plugin-react": "^7.23.2",
-    "nodemon": "^2.0.7",
-    "typescript": "^4.2.4",
-    "node": "^21.7.0"
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
   }
 }

@@ -1,4 +1,4 @@
-import Explosion from "../models/Explosion";
+import Explosion from "../models/Explosion.js";
 
 export type ExplosionRawData = {
   str: string;

@@ -1,5 +1,5 @@
-import { randomSelect } from "./array";
-import { palindromeMap } from "../data/palindromes";
+import { randomSelect } from "./array.js";
+import { palindromeMap } from "../data/palindromes.js";
 
 export const reverse = (str: string) => {
   return str.split("").reverse().join("");

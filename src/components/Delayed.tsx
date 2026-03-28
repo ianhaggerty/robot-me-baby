@@ -1,9 +1,9 @@
-import { PropsWithChildren, useState, useEffect } from "react";
+import { type ReactElement, useState, useEffect } from "react";
 
-type DelayedProps = PropsWithChildren<{
+type DelayedProps = {
   delay?: number;
-  children: JSX.Element;
-}>;
+  children: ReactElement;
+};
 
 const Delayed = ({ children, delay: waitBeforeShow = 500 }: DelayedProps) => {
   const [isShown, setIsShown] = useState(false);

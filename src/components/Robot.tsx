@@ -1,8 +1,8 @@
 import React from "react";
 import { Box, Text } from "ink";
-import Robot from "../models/Robot";
+import Robot from "../models/Robot.js";
 
-import { Color } from "../data/colors";
+import { Color } from "../data/colors.js";
 
 type RobotProps = {
   robot: Robot;

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 
-import { random } from "../utility/maths";
+import { random } from "../utility/maths.js";
 
 type UseAccumulateOptions = {
   start?: number;
@@ -26,7 +26,7 @@ const useAccumulate = ({
   onEnd = () => null,
 }: UseAccumulateOptions): [
   number,
-  React.Dispatch<React.SetStateAction<number>>
+  Dispatch<SetStateAction<number>>
 ] => {
   const [number, setNumber] = useState(start);
 
