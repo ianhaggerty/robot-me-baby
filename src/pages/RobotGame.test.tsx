@@ -27,6 +27,7 @@ vi.mock("../assets/sounds.js", () => ({
     Sweep: "sweep.wav",
     TypeBeep: "type-beep.wav",
     Yes: "yes.wav",
+    Wrong: "wrong.mp3",
   },
 }));
 
