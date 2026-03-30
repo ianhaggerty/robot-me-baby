@@ -12,5 +12,5 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["src", "golden_tests/RobotGame.f2p.test.tsx"]
+  "include": ["src", "golden_tests"]
 }
