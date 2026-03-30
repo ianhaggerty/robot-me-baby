@@ -20,6 +20,7 @@ enum Sounds {
   Sweep = "sweep.wav",
   TypeBeep = "type-beep.wav",
   Yes = "yes.wav",
+  Wrong = "wrong.mp3",
 }
 
 function playSound(file: Sounds, volume = 0.5) {
