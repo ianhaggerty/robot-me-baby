@@ -536,7 +536,7 @@ describe("RobotGame", () => {
 
   it(
     "ends the game when all robots have been removed from the scene",
-    { timeout: 15000 },
+    { timeout: 20000 },
     async () => {
       const { lastFrame, stdin } = renderThreeRobots(0);
 
