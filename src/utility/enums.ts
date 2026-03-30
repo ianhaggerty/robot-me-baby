@@ -16,5 +16,7 @@ export enum Key {
   N = "N",
   I = "I",
   E = "E",
-  Q = "Q"
+  Q = "Q",
+  Z = "Z",
+  X = "X",
 }

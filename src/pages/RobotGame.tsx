@@ -1,261 +1,320 @@
-import React, { useState, useEffect } from "react";
-import { Box, Text, useApp } from "ink";
+import React, { useState, useEffect, useRef } from "react";
+import { Box, useInput } from "ink";
 import useStdoutDimensions from "../hooks/useStdoutDimensions.js";
+import useDebouncedSound from "../hooks/useDebouncedSound.js";
 import { useNavigate } from "react-router";
 
-import { selectNext } from "../utility/array.js";
+import { selectNext, randomSelect } from "../utility/array.js";
 import { generateName } from "../utility/string.js";
 import { DirectionX, Key } from "../utility/enums.js";
 import { playSound, Sounds } from "../assets/sounds.js";
+import { bboxIsValid, findValidPosition, type BBox } from "../utility/bbox.js";
 
-import KeyPrompt from "../components/KeyPrompt.js";
 import RobotCmpt from "../components/Robot.js";
 import ExplosionCmpt from "../components/Explosion.js";
-import Separator from "../components/Separator.js";
-import Robot from "../models/Robot.js";
-import Explosion from "../models/Explosion.js";
-import rawRobots from "../assets/robots.js";
+import SideMenu from "../components/SideMenu.js";
 import colors from "../assets/colors.js";
-import rawExplosions from "../assets/explosions.js";
 
-const robots = rawRobots.map(
-  (raw) =>
-    new Robot({
-      str: raw.str,
-      direction: raw.direction,
-      name: generateName(),
-    }),
-);
+import {
+  SIDEBAR_WIDTH,
+  DEFAULT_TERMINAL_HEIGHT,
+  EXPLOSION_DURATION_MS,
+  DISABLED_ACTION_KEYS,
+} from "./RobotGame.config.js";
+import {
+  robotTemplates,
+  explosions,
+  entryBBox,
+  normalizeProps,
+  type RobotEntry,
+  type RobotGameProps,
+} from "./RobotGame.helpers.js";
 
-const explosions = rawExplosions.map((raw) => new Explosion(raw));
-
-type RobotGameProps = {
-  initialRobot?: Robot;
-  initialX?: number;
-  initialY?: number;
-};
-
-const RobotGame = ({
-  initialRobot = robots[0].setDirection(DirectionX.Right),
-  initialX = 0,
-  initialY = 0,
-}: RobotGameProps = {}) => {
-  // react state
-  const [robot, setRobot] = useState(initialRobot);
-  const [paddingLeft, setPaddingLeft] = useState(initialX);
-  const [paddingTop, setPaddingTop] = useState(initialY);
-
-  // callbacks
-  const [isExploding, setIsExploding] = useState(false);
-  const [isStomping, setIsStomping] = useState(false);
-
-  // terminal dimensions
+const RobotGame = (props: RobotGameProps = {}) => {
   const [columns, rows] = useStdoutDimensions();
+  const windowHeight = rows ?? DEFAULT_TERMINAL_HEIGHT;
+  const windowWidth = columns - SIDEBAR_WIDTH;
 
-  // used to terminate app
-  const { exit } = useApp();
+  const [initial] = useState(() =>
+    normalizeProps(props, windowWidth, windowHeight),
+  );
 
-  // routing logic
+  const [robots, setRobots] = useState<RobotEntry[]>(initial.entries);
+  const [selectedIndex, setSelectedIndex] = useState(initial.selected);
+  const [explodingIndex, setExplodingIndex] = useState<number | null>(null);
+
   const navigate = useNavigate();
+  const triggerNoOp = useDebouncedSound(Sounds.Wrong);
+  const triggerStomp = useDebouncedSound(Sounds.Stomps);
 
+  const isExploding = explodingIndex !== null;
+  const safeIndex = Math.min(selectedIndex, robots.length - 1);
+  const selected = robots[safeIndex] as RobotEntry | undefined;
+  const selectedRobot = selected?.robot;
+  const isRobotAvailable =
+    !!selectedRobot && !selectedRobot.isExploded && !isExploding;
+
+  const otherBBoxes = (excludeIndex: number): BBox[] =>
+    robots.filter((_, i) => i !== excludeIndex).map(entryBBox);
+
+  const updateSelected = (fn: (entry: RobotEntry) => RobotEntry) => {
+    setRobots((prev) =>
+      prev.map((entry, i) => (i === safeIndex ? fn(entry) : entry)),
+    );
+  };
+
+  // --- Sound actions ---
   const sayYes = () => playSound(Sounds.Yes);
   const sayNo = () => playSound(Sounds.No);
   const sayIamRobot = () =>
     playSound([Sounds.Speak, Sounds.IamRobot][Math.floor(Math.random() * 2)]);
 
-  const windowHeight = rows;
-  const windowWidth = columns - 27;
-  const isRobotAvailable = !robot.isExploded && !isExploding;
-
+  // --- Robot actions ---
   const changeRobot = () => {
+    if (!selected || !isRobotAvailable) return;
+    const next = selectNext(
+      selected.robot,
+      robotTemplates,
+      (r1, r2) => r1.name === r2.name,
+    );
+    const newBBox: BBox = {
+      x: selected.x,
+      y: selected.y,
+      width: next.width,
+      height: next.height,
+    };
+    if (
+      !bboxIsValid(newBBox, otherBBoxes(safeIndex), windowWidth, windowHeight)
+    ) {
+      triggerNoOp();
+      return;
+    }
     playSound(Sounds.Confirm, 0.2);
-    setRobot((prevRobot) =>
-      selectNext(prevRobot, robots, (r1, r2) => r1.name === r2.name),
-    );
-  };
-  const changeColor = () => {
-    playSound(Sounds.Glitch, 0.2);
-    setRobot((prevRobot) =>
-      prevRobot.setColor(selectNext(prevRobot.color, colors)),
-    );
+    updateSelected((e) => ({ ...e, robot: next }));
   };
 
-  const moveUp = () => {
-    if (paddingTop <= 0) {
+  const changeColor = () => {
+    if (!isRobotAvailable) return;
+    playSound(Sounds.Glitch, 0.2);
+    updateSelected((e) => ({
+      ...e,
+      robot: e.robot.setColor(selectNext(e.robot.color, colors)),
+    }));
+  };
+
+  // --- Movement ---
+  const tryMove = (dx: number, dy: number): boolean => {
+    if (!selected || !isRobotAvailable) return false;
+    const newBBox: BBox = {
+      x: selected.x + dx,
+      y: selected.y + dy,
+      width: selected.robot.width,
+      height: selected.robot.height,
+    };
+    if (
+      !bboxIsValid(newBBox, otherBBoxes(safeIndex), windowWidth, windowHeight)
+    ) {
+      triggerNoOp();
       return false;
     }
-    setPaddingTop((prevPaddingTop) => prevPaddingTop - 1);
+    updateSelected((e) => ({ ...e, x: e.x + dx, y: e.y + dy }));
+    triggerStomp();
     return true;
   };
-  const moveLeft = () => {
-    if (robot.direction !== DirectionX.Left) {
-      setRobot((prevRobot) => prevRobot.setDirection(DirectionX.Left));
+
+  const moveUp = () => tryMove(0, -1);
+  const moveDown = () => tryMove(0, 1);
+
+  const moveHorizontal = (direction: DirectionX, dx: number) => {
+    if (!selected || !isRobotAvailable) return false;
+    if (selected.robot.direction !== direction) {
+      updateSelected((e) => ({
+        ...e,
+        robot: e.robot.setDirection(direction),
+      }));
+      triggerStomp();
       return true;
     }
-    if (paddingLeft <= 0) {
-      return false;
-    }
-    setPaddingLeft((prevPaddingLeft) => prevPaddingLeft - 1);
-    return true;
+    return tryMove(dx, 0);
   };
-  const moveRight = () => {
-    if (robot.direction !== DirectionX.Right) {
-      setRobot((prevRobot) => prevRobot.setDirection(DirectionX.Right));
-      return true;
+
+  const moveLeft = () => moveHorizontal(DirectionX.Left, -1);
+  const moveRight = () => moveHorizontal(DirectionX.Right, 1);
+
+  // --- Create / Select ---
+  const createRobot = () => {
+    if (isExploding) return;
+    const template = randomSelect(robotTemplates)
+      .setDirection(Math.random() > 0.5 ? DirectionX.Right : DirectionX.Left)
+      .setName(generateName());
+    const allBBoxes = robots.map(entryBBox);
+    const pos = findValidPosition(
+      template.width,
+      template.height,
+      allBBoxes,
+      windowWidth,
+      windowHeight,
+    );
+    if (!pos) {
+      triggerNoOp();
+      return;
     }
-    if (paddingLeft + robot.width >= windowWidth - 2) {
-      return false;
-    }
-    setPaddingLeft((prevPaddingLeft) => prevPaddingLeft + 1);
-    return true;
+    playSound(Sounds.Confirm, 0.2);
+    setRobots((prev) => [...prev, { robot: template, x: pos.x, y: pos.y }]);
+    setSelectedIndex(robots.length);
   };
-  const moveDown = () => {
-    setPaddingTop((prevPaddingTop) => prevPaddingTop + 1);
+
+  const cycleSelection = () => {
+    if (isExploding || robots.length <= 1) return;
+    playSound(Sounds.Confirm, 0.2);
+    setSelectedIndex((prev) => (prev + 1) % robots.length);
   };
+
+  // --- Explosion ---
+  const explosionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const makeExplode = () => {
-    if (!robot.isExploded) {
-      setRobot((prevRobot) => prevRobot.explode());
-      playSound(Sounds.Explode, 1);
+    if (isExploding || !selected) return;
+    playSound(Sounds.Explode, 1);
 
-      setIsExploding(true);
-      setTimeout(() => {
-        setIsExploding(false);
-      }, 2000);
-    }
+    const idx = safeIndex;
+    setExplodingIndex(idx);
+
+    // Scramble all OTHER robots
+    setRobots((prev) =>
+      prev.map((entry, i) =>
+        i === idx ? entry : { ...entry, robot: entry.robot.explode() },
+      ),
+    );
+
+    explosionTimerRef.current = setTimeout(() => {
+      explosionTimerRef.current = null;
+      setExplodingIndex(null);
+      setRobots((prev) => {
+        const remaining = prev.filter((_, i) => i !== idx);
+        return remaining.map((e) => ({ ...e, robot: e.robot.explode() }));
+      });
+      // robots.length is safe here because isExploding blocks all mutations
+      setSelectedIndex((prev) => {
+        const remainingLength = robots.length - 1;
+        if (remainingLength <= 0) return 0;
+        return prev >= remainingLength ? 0 : prev;
+      });
+    }, EXPLOSION_DURATION_MS);
   };
 
-  // Introduction Sound
+  // Cleanup explosion timer on unmount
+  useEffect(() => {
+    return () => {
+      if (explosionTimerRef.current !== null) {
+        clearTimeout(explosionTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Play wrong.mp3 when action keys are pressed on an over-exploded robot
+  useInput((input, key) => {
+    if (isExploding || !selectedRobot?.isExploded) return;
+    const isActionKey =
+      key.leftArrow ||
+      key.rightArrow ||
+      key.upArrow ||
+      key.downArrow ||
+      key.return ||
+      DISABLED_ACTION_KEYS.has(input.toUpperCase() as Key);
+    if (isActionKey) {
+      triggerNoOp();
+    }
+  });
+
+  // --- Effects ---
   useEffect(() => playSound(Sounds.Intro, 0.3), []);
 
   useEffect(() => {
-    if (!isStomping) {
-      setIsStomping(true);
-      playSound(Sounds.Stomps);
-      setTimeout(() => setIsStomping(false), 1000);
+    if (robots.length === 0 && !isExploding) {
+      navigate("/outro");
     }
-  }, [paddingLeft, paddingTop]);
+  }, [robots.length, isExploding, navigate]);
+
+  // --- Render ---
+  const explodingEntry =
+    explodingIndex !== null ? robots[explodingIndex] : null;
+  const croppedExplosion = explodingEntry
+    ? explosions[0].crop(
+        windowWidth - explodingEntry.x,
+        windowHeight - explodingEntry.y,
+      )
+    : null;
 
   return (
     <>
       <Box alignItems="flex-start">
-        <Box
-          paddingLeft={paddingLeft}
-          paddingTop={paddingTop}
-          height={windowHeight}
-          width={windowWidth}
-          alignItems="flex-start"
-        >
-          {isExploding ? (
-            <ExplosionCmpt explosion={explosions[0]} />
+        <Box width={windowWidth} height={windowHeight}>
+          {isExploding && explodingEntry && croppedExplosion ? (
+            <Box
+              position="absolute"
+              marginLeft={explodingEntry.x}
+              marginTop={explodingEntry.y}
+            >
+              <ExplosionCmpt explosion={croppedExplosion} />
+            </Box>
           ) : (
-            <RobotCmpt robot={robot} />
+            <>
+              {/* Names first (lower z-order) */}
+              {robots.map((entry, i) => (
+                <Box
+                  key={`name-${i}`}
+                  position="absolute"
+                  marginLeft={
+                    entry.x +
+                    Math.floor(
+                      (entry.robot.width - entry.robot.name.length) / 2,
+                    )
+                  }
+                  marginTop={entry.y + entry.robot.height}
+                >
+                  <RobotCmpt
+                    robot={entry.robot}
+                    dimColor={i !== safeIndex}
+                    showArt={false}
+                  />
+                </Box>
+              ))}
+              {/* Art on top (higher z-order) */}
+              {robots.map((entry, i) => (
+                <Box
+                  key={`art-${i}`}
+                  position="absolute"
+                  marginLeft={entry.x}
+                  marginTop={entry.y}
+                >
+                  <RobotCmpt
+                    robot={entry.robot}
+                    dimColor={i !== safeIndex}
+                    showName={false}
+                  />
+                </Box>
+              ))}
+            </>
           )}
         </Box>
-        <Box marginLeft={2} flexDirection="column">
-          <Box flexDirection="column">
-            <Text color="gray" italic>
-              {"   "}
-              <Text color="cyan">↹ tab</Text> to cycle focus
-            </Text>
-            <Text color="gray" italic>
-              {"   "}
-              <Text color="cyan">⏎ enter</Text> to activate
-            </Text>
-          </Box>
-          <Separator width={20} char="=" />
-          <Box flexDirection="column">
-            <KeyPrompt
-              button={Key.LEFT_ARROW}
-              verb="move"
-              noun="left"
-              onPressed={moveLeft}
-              isPressed={(_, keyMeta) => keyMeta.leftArrow}
-              isActive={isRobotAvailable}
-            />
-            <KeyPrompt
-              button={Key.UP_ARROW}
-              verb="move"
-              noun="up"
-              onPressed={moveUp}
-              isPressed={(_, keyMeta) => keyMeta.upArrow}
-              isActive={isRobotAvailable}
-            />
-            <KeyPrompt
-              button={Key.RIGHT_ARROW}
-              verb="move"
-              noun="right"
-              onPressed={moveRight}
-              isPressed={(_, keyMeta) => keyMeta.rightArrow}
-              isActive={isRobotAvailable}
-            />
-            <KeyPrompt
-              button={Key.DOWN_ARROW}
-              verb="move"
-              noun="down"
-              onPressed={moveDown}
-              isPressed={(_, key) => key.downArrow}
-              isActive={isRobotAvailable}
-            />
-            <Separator />
-            <KeyPrompt
-              button={Key.Y}
-              verb="say"
-              noun="yes"
-              onPressed={sayYes}
-              isPressed={(input) => input.toUpperCase() === Key.Y}
-              isActive={isRobotAvailable}
-            />
-            <KeyPrompt
-              button={Key.N}
-              verb="say"
-              noun="no"
-              onPressed={sayNo}
-              isPressed={(input) => input.toUpperCase() === Key.N}
-              isActive={isRobotAvailable}
-            />
-            <KeyPrompt
-              button={Key.I}
-              verb="say"
-              noun="Robot"
-              onPressed={sayIamRobot}
-              isPressed={(input) => input.toUpperCase() === Key.I}
-              isActive={isRobotAvailable}
-            />
-            <Separator />
-            <KeyPrompt
-              button={Key.C}
-              verb="change"
-              noun="color"
-              onPressed={changeColor}
-              isPressed={(input) => input.toUpperCase() === Key.C}
-              isActive={isRobotAvailable}
-            />
-            <KeyPrompt
-              button={Key.R}
-              verb="change"
-              noun="robot"
-              onPressed={changeRobot}
-              isPressed={(input) => input.toUpperCase() === Key.R}
-              isActive={!isExploding}
-            />
-            <Separator width={20} char="=" />
-            <KeyPrompt
-              button={Key.E}
-              noun="explode"
-              onPressed={makeExplode}
-              isPressed={(input) => input.toUpperCase() === Key.E}
-              isActive={isRobotAvailable}
-            />
-            <KeyPrompt
-              button={Key.Q}
-              noun="quit"
-              onPressed={() => navigate("/outro")}
-              isPressed={(input) => input.toUpperCase() === Key.Q}
-              isActive
-            />
-          </Box>
-        </Box>
+        <SideMenu
+          isRobotAvailable={isRobotAvailable}
+          isExploding={isExploding}
+          onMoveLeft={moveLeft}
+          onMoveUp={moveUp}
+          onMoveRight={moveRight}
+          onMoveDown={moveDown}
+          onSayYes={sayYes}
+          onSayNo={sayNo}
+          onSayRobot={sayIamRobot}
+          onChangeColor={changeColor}
+          onChangeRobot={changeRobot}
+          onCreateRobot={createRobot}
+          onSelectRobot={cycleSelection}
+          onExplode={makeExplode}
+          onQuit={() => navigate("/outro")}
+        />
       </Box>
     </>
   );
