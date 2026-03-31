@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Box, useInput } from "ink";
 import useStdoutDimensions from "../hooks/useStdoutDimensions.js";
 import useDebouncedSound from "../hooks/useDebouncedSound.js";
@@ -53,6 +53,16 @@ const RobotGame = (props: RobotGameProps = {}) => {
   const selectedRobot = selected?.robot;
   const isRobotAvailable =
     !!selectedRobot && !selectedRobot.isExploded && !isExploding;
+
+  // Refs to avoid stale closures in useInput/useCallback handlers
+  const isExplodingRef = useRef(isExploding);
+  isExplodingRef.current = isExploding;
+  const robotsRef = useRef(robots);
+  robotsRef.current = robots;
+  const safeIndexRef = useRef(safeIndex);
+  safeIndexRef.current = safeIndex;
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
 
   const otherBBoxes = (excludeIndex: number): BBox[] =>
     robots.filter((_, i) => i !== excludeIndex).map(entryBBox);
@@ -173,14 +183,13 @@ const RobotGame = (props: RobotGameProps = {}) => {
   // --- Explosion ---
   const explosionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const makeExplode = () => {
-    if (isExploding || !selected) return;
+  const makeExplode = useCallback(() => {
+    if (isExplodingRef.current || !selectedRef.current) return;
     playSound(Sounds.Explode, 1);
 
-    const idx = safeIndex;
+    const idx = safeIndexRef.current;
     setExplodingIndex(idx);
 
-    // Scramble all OTHER robots
     setRobots((prev) =>
       prev.map((entry, i) =>
         i === idx ? entry : { ...entry, robot: entry.robot.explode() },
@@ -194,14 +203,13 @@ const RobotGame = (props: RobotGameProps = {}) => {
         const remaining = prev.filter((_, i) => i !== idx);
         return remaining.map((e) => ({ ...e, robot: e.robot.explode() }));
       });
-      // robots.length is safe here because isExploding blocks all mutations
       setSelectedIndex((prev) => {
-        const remainingLength = robots.length - 1;
+        const remainingLength = robotsRef.current.length - 1;
         if (remainingLength <= 0) return 0;
         return prev >= remainingLength ? 0 : prev;
       });
     }, EXPLOSION_DURATION_MS);
-  };
+  }, []);
 
   // Cleanup explosion timer on unmount
   useEffect(() => {
