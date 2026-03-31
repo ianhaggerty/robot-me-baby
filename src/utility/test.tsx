@@ -33,10 +33,15 @@ function blockMatch(
   row: number,
   col: number,
 ): boolean {
-  return artLines.every(
-    (artLine, i) =>
-      frameLines[row + i].substring(col, col + artLine.length) === artLine,
-  );
+  return artLines.every((artLine, i) => {
+    const frameLine = frameLines[row + i];
+    for (let c = 0; c < artLine.length; c++) {
+      if (artLine[c] === " ") continue;
+      if (col + c >= frameLine.length || frameLine[col + c] !== artLine[c])
+        return false;
+    }
+    return true;
+  });
 }
 
 export function frameContainsArt(frame: string, art: string): boolean {
@@ -44,9 +49,22 @@ export function frameContainsArt(frame: string, art: string): boolean {
   const artLines = trimmedArtLines(art);
   if (artLines.length === 0) return true;
 
+  // Find the first non-space segment in the first art line to anchor the search
+  const firstLine = artLines[0];
+  const anchor = firstLine.match(/\S+/);
+  if (!anchor) return true;
+  const anchorOffset = anchor.index!;
+  const anchorText = anchor[0];
+
   for (let row = 0; row <= frameLines.length - artLines.length; row++) {
-    const col = frameLines[row].indexOf(artLines[0]);
-    if (col !== -1 && blockMatch(frameLines, artLines, row, col)) return true;
+    let startCol = 0;
+    while (true) {
+      const anchorCol = frameLines[row].indexOf(anchorText, startCol);
+      if (anchorCol === -1) break;
+      const col = anchorCol - anchorOffset;
+      if (col >= 0 && blockMatch(frameLines, artLines, row, col)) return true;
+      startCol = anchorCol + 1;
+    }
   }
   return false;
 }
@@ -55,14 +73,20 @@ function countSingleArt(frameLines: string[], art: string): number {
   const artLines = trimmedArtLines(art);
   if (artLines.length === 0) return 0;
 
+  const anchor = artLines[0].match(/\S+/);
+  if (!anchor) return 0;
+  const anchorOffset = anchor.index!;
+  const anchorText = anchor[0];
+
   let count = 0;
   for (let row = 0; row <= frameLines.length - artLines.length; row++) {
     let startCol = 0;
     while (true) {
-      const col = frameLines[row].indexOf(artLines[0], startCol);
-      if (col === -1) break;
-      if (blockMatch(frameLines, artLines, row, col)) count++;
-      startCol = col + 1;
+      const anchorCol = frameLines[row].indexOf(anchorText, startCol);
+      if (anchorCol === -1) break;
+      const col = anchorCol - anchorOffset;
+      if (col >= 0 && blockMatch(frameLines, artLines, row, col)) count++;
+      startCol = anchorCol + 1;
     }
   }
   return count;
@@ -76,16 +100,22 @@ export function findArtPositions(
   const artLines = trimmedArtLines(art);
   if (artLines.length === 0) return [];
 
+  const anchor = artLines[0].match(/\S+/);
+  if (!anchor) return [];
+  const anchorOffset = anchor.index!;
+  const anchorText = anchor[0];
+
   const positions: { x: number; y: number }[] = [];
   for (let row = 0; row <= frameLines.length - artLines.length; row++) {
     let startCol = 0;
     while (true) {
-      const col = frameLines[row].indexOf(artLines[0], startCol);
-      if (col === -1) break;
-      if (blockMatch(frameLines, artLines, row, col)) {
+      const anchorCol = frameLines[row].indexOf(anchorText, startCol);
+      if (anchorCol === -1) break;
+      const col = anchorCol - anchorOffset;
+      if (col >= 0 && blockMatch(frameLines, artLines, row, col)) {
         positions.push({ x: col, y: row });
       }
-      startCol = col + 1;
+      startCol = anchorCol + 1;
     }
   }
   return positions;
