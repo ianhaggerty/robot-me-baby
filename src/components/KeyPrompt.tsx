@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useCallback } from "react";
 import { Key as KeyMeta, Text, useInput, useFocus } from "ink";
 import { capitalize } from "../utility/string.js";
 
@@ -26,14 +26,25 @@ const KeyPrompt = ({
 }: KeyPromptProps) => {
   const { isFocused } = useFocus({ autoFocus: true });
 
-  useInput((input, keyMeta) => {
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
+  const onPressedRef = useRef(onPressed);
+  onPressedRef.current = onPressed;
+  const isFocusedRef = useRef(isFocused);
+  isFocusedRef.current = isFocused;
+  const isPressedRef = useRef(isPressed);
+  isPressedRef.current = isPressed;
+
+  const stableHandler = useCallback((input: string, keyMeta: KeyMeta) => {
     if (
-      (isPressed(input, keyMeta) && isActive) ||
-      (keyMeta.return && isFocused && isActive)
+      (isPressedRef.current(input, keyMeta) && isActiveRef.current) ||
+      (keyMeta.return && isFocusedRef.current && isActiveRef.current)
     ) {
-      onPressed();
+      onPressedRef.current();
     }
-  });
+  }, []);
+
+  useInput(stableHandler);
 
   const getColor = (str: string) => (isActive ? str : "gray");
   const verbMaxWidth = 6;
