@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, useInput } from "ink";
+import { Box, Text, useInput } from "ink";
 import useStdoutDimensions from "../hooks/useStdoutDimensions.js";
 import useDebouncedSound from "../hooks/useDebouncedSound.js";
 import { useNavigate } from "react-router";
@@ -8,7 +8,12 @@ import { selectNext, randomSelect } from "../utility/array.js";
 import { generateName } from "../utility/string.js";
 import { DirectionX, Key } from "../utility/enums.js";
 import { playSound, Sounds } from "../assets/sounds.js";
-import { bboxIsValid, findValidPosition, type BBox } from "../utility/bbox.js";
+import {
+  resolveMove,
+  isCharacterValid,
+  findValidPositionByCharacter,
+  type PositionedArt,
+} from "../utility/collision.js";
 
 import RobotCmpt from "../components/Robot.js";
 import ExplosionCmpt from "../components/Explosion.js";
@@ -24,11 +29,30 @@ import {
 import {
   robotTemplates,
   explosions,
-  entryBBox,
+  entryPositionedArt,
   normalizeProps,
   type RobotEntry,
   type RobotGameProps,
 } from "./RobotGame.helpers.js";
+
+function getNonSpaceSegments(
+  line: string,
+): { start: number; text: string }[] {
+  const segments: { start: number; text: string }[] = [];
+  let i = 0;
+  while (i < line.length) {
+    if (line[i] === " ") {
+      i++;
+      continue;
+    }
+    const start = i;
+    while (i < line.length && line[i] !== " ") {
+      i++;
+    }
+    segments.push({ start, text: line.substring(start, i) });
+  }
+  return segments;
+}
 
 const RobotGame = (props: RobotGameProps = {}) => {
   const [columns, rows] = useStdoutDimensions();
@@ -54,8 +78,7 @@ const RobotGame = (props: RobotGameProps = {}) => {
   const isRobotAvailable =
     !!selectedRobot && !selectedRobot.isExploded && !isExploding;
 
-  const otherBBoxes = (excludeIndex: number): BBox[] =>
-    robots.filter((_, i) => i !== excludeIndex).map(entryBBox);
+  const robotArts = (): PositionedArt[] => robots.map(entryPositionedArt);
 
   const updateSelected = (fn: (entry: RobotEntry) => RobotEntry) => {
     setRobots((prev) =>
@@ -77,15 +100,15 @@ const RobotGame = (props: RobotGameProps = {}) => {
       robotTemplates,
       (r1, r2) => r1.name === r2.name,
     );
-    const newBBox: BBox = {
+    const newArt: PositionedArt = {
+      art: next.toString(),
       x: selected.x,
       y: selected.y,
       width: next.width,
       height: next.height,
     };
-    if (
-      !bboxIsValid(newBBox, otherBBoxes(safeIndex), windowWidth, windowHeight)
-    ) {
+    const otherArts = robotArts().filter((_, i) => i !== safeIndex);
+    if (!isCharacterValid(newArt, otherArts, windowWidth, windowHeight)) {
       triggerNoOp();
       return;
     }
@@ -105,19 +128,29 @@ const RobotGame = (props: RobotGameProps = {}) => {
   // --- Movement ---
   const tryMove = (dx: number, dy: number): boolean => {
     if (!selected || !isRobotAvailable) return false;
-    const newBBox: BBox = {
-      x: selected.x + dx,
-      y: selected.y + dy,
-      width: selected.robot.width,
-      height: selected.robot.height,
-    };
-    if (
-      !bboxIsValid(newBBox, otherBBoxes(safeIndex), windowWidth, windowHeight)
-    ) {
+
+    const arts = robotArts();
+    const result = resolveMove(
+      safeIndex,
+      dx,
+      dy,
+      arts,
+      windowWidth,
+      windowHeight,
+    );
+
+    if (!result) {
       triggerNoOp();
       return false;
     }
-    updateSelected((e) => ({ ...e, x: e.x + dx, y: e.y + dy }));
+
+    setRobots((prev) =>
+      prev.map((entry, i) => ({
+        ...entry,
+        x: result[i].x,
+        y: result[i].y,
+      })),
+    );
     triggerStomp();
     return true;
   };
@@ -147,11 +180,12 @@ const RobotGame = (props: RobotGameProps = {}) => {
     const template = randomSelect(robotTemplates)
       .setDirection(Math.random() > 0.5 ? DirectionX.Right : DirectionX.Left)
       .setName(generateName());
-    const allBBoxes = robots.map(entryBBox);
-    const pos = findValidPosition(
+    const allArts = robotArts();
+    const pos = findValidPositionByCharacter(
+      template.toString(),
       template.width,
       template.height,
-      allBBoxes,
+      allArts,
       windowWidth,
       windowHeight,
     );
@@ -280,21 +314,29 @@ const RobotGame = (props: RobotGameProps = {}) => {
                   />
                 </Box>
               ))}
-              {/* Art on top (higher z-order) */}
-              {robots.map((entry, i) => (
-                <Box
-                  key={`art-${i}`}
-                  position="absolute"
-                  marginLeft={entry.x}
-                  marginTop={entry.y}
-                >
-                  <RobotCmpt
-                    robot={entry.robot}
-                    dimColor={i !== safeIndex}
-                    showName={false}
-                  />
-                </Box>
-              ))}
+              {/* Art on top (higher z-order) — render only non-space segments
+                  so that spaces are transparent and overlapping bounding boxes
+                  display correctly regardless of scene order. */}
+              {robots.flatMap((entry, i) => {
+                const lines = entry.robot.toString().split("\n");
+                return lines.flatMap((line, ly) =>
+                  getNonSpaceSegments(line).map((seg, si) => (
+                    <Box
+                      key={`art-${i}-${ly}-${si}`}
+                      position="absolute"
+                      marginLeft={entry.x + seg.start}
+                      marginTop={entry.y + ly}
+                    >
+                      <Text
+                        color={entry.robot.color}
+                        dimColor={i !== safeIndex}
+                      >
+                        {seg.text}
+                      </Text>
+                    </Box>
+                  )),
+                );
+              })}
             </>
           )}
         </Box>

@@ -1,6 +1,10 @@
 import { generateName } from "../utility/string.js";
 import { DirectionX } from "../utility/enums.js";
-import { bboxInBounds, bboxOverlap, type BBox } from "../utility/bbox.js";
+import { bboxInBounds, type BBox } from "../utility/bbox.js";
+import {
+  hasCharacterCollision,
+  type PositionedArt,
+} from "../utility/collision.js";
 
 import Robot from "../models/Robot.js";
 import Explosion from "../models/Explosion.js";
@@ -29,6 +33,16 @@ export type RobotGameProps = {
 
 export function entryBBox(entry: RobotEntry): BBox {
   return {
+    x: entry.x,
+    y: entry.y,
+    width: entry.robot.width,
+    height: entry.robot.height,
+  };
+}
+
+export function entryPositionedArt(entry: RobotEntry): PositionedArt {
+  return {
+    art: entry.robot.toString(),
     x: entry.x,
     y: entry.y,
     width: entry.robot.width,
@@ -112,8 +126,13 @@ export function normalizeProps(
       throw new Error(`Robot ${i} bounding box escapes the window`);
     }
     for (let j = i + 1; j < entries.length; j++) {
-      if (bboxOverlap(bbox, entryBBox(entries[j]))) {
-        throw new Error(`Robot ${i} and ${j} bounding boxes overlap`);
+      if (
+        hasCharacterCollision(
+          entryPositionedArt(entries[i]),
+          entryPositionedArt(entries[j]),
+        )
+      ) {
+        throw new Error(`Robot ${i} and ${j} characters overlap`);
       }
     }
   }
