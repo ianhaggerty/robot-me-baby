@@ -1,4 +1,5 @@
 import { ExplosionRawData } from "../assets/explosions.js";
+import { maxWidth, lineCount } from "../utility/string.js";
 
 class Explosion {
   private readonly _str: string;
@@ -7,11 +8,11 @@ class Explosion {
   }
 
   public get width(): number {
-    return Math.max(...this._str.split("\n").map((line) => line.length));
+    return maxWidth(this._str);
   }
 
   public get height(): number {
-    return this._str.split("\n").length;
+    return lineCount(this._str);
   }
 
   public crop(maxWidth: number, maxHeight: number): Explosion {

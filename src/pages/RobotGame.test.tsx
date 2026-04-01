@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
-import { cleanup } from "ink-testing-library";
 
 import {
   frameContainsArt,
@@ -26,45 +25,136 @@ import {
   renderRobotGameExpectError,
   renderRobotGameExpectNoError,
   pressKey,
+  mockNavigate,
+  mockPlaySound,
+  resetMocks,
+  solveMaze,
+  art_1x1,
+  art_2x2,
+  art_3x3_hollow,
+  art_disjoint,
+  art_K,
+  art_L,
+  art_J,
+  art_irregular,
+  art_maze,
+  MAZE_A_START,
 } from "../utility/test.js";
 import Robot from "../models/Robot.js";
 import { DirectionX } from "../utility/enums.js";
 import rawRobots from "../assets/robots.js";
 import rawExplosions from "../assets/explosions.js";
 import { Color } from "../assets/colors.js";
-import { playSound } from "../assets/sounds.js";
 
-const mockNavigate = vi.fn();
-const mockPlaySound = vi.mocked(playSound);
 vi.mock("react-router", async () => {
   const actual =
     await vi.importActual<typeof import("react-router")>("react-router");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
+  const _navigate = vi.fn();
+  return { ...actual, useNavigate: () => _navigate };
 });
 
-vi.mock("../assets/sounds.js", () => ({
-  playSound: vi.fn(),
-  Sounds: {
-    Ambience: "ambience.wav",
-    Broken: "broken-robot.mp3",
-    Future: "future.mp3",
-    Glitch: "glitch.wav",
-    Intro: "intro.wav",
-    No: "no.wav",
-    Explode: "nuclear_explode.mp3",
-    Confirm: "retro-confirm.wav",
-    Speak: "speak.wav",
-    IamRobot: "i_am_robot_2.wav",
-    Stomps: "stomps.wav",
-    Sweep: "sweep.wav",
-    TypeBeep: "type-beep.wav",
-    Yes: "yes.wav",
-    Wrong: "wrong.mp3",
+vi.mock("../assets/sounds.js", async () => {
+  const { Sounds } =
+    await vi.importActual<typeof import("../assets/sounds.js")>(
+      "../assets/sounds.js",
+    );
+  return { Sounds, playSound: vi.fn() };
+});
+
+const ARROW: Record<string, string> = {
+  right: "\x1B[C",
+  left: "\x1B[D",
+  up: "\x1B[A",
+  down: "\x1B[B",
+};
+
+const WINDOW_WIDTH = 73;
+const WINDOW_HEIGHT = 24;
+
+type DirConfig = {
+  name: string;
+  dx: number;
+  dy: number;
+  arrow: string;
+  initialDir: DirectionX;
+};
+
+const DIRS: DirConfig[] = [
+  {
+    name: "right",
+    dx: 1,
+    dy: 0,
+    arrow: ARROW.right,
+    initialDir: DirectionX.Right,
   },
-}));
+  {
+    name: "left",
+    dx: -1,
+    dy: 0,
+    arrow: ARROW.left,
+    initialDir: DirectionX.Left,
+  },
+  {
+    name: "down",
+    dx: 0,
+    dy: 1,
+    arrow: ARROW.down,
+    initialDir: DirectionX.Right,
+  },
+  { name: "up", dx: 0, dy: -1, arrow: ARROW.up, initialDir: DirectionX.Right },
+];
+
+function makeRobot(art: string, dir: DirectionX, name: string) {
+  return new Robot({ str: art, direction: dir, name });
+}
+
+function edgePos(size: number, windowSize: number) {
+  return windowSize - size;
+}
+
+function move(
+  stdin: { write: (s: string) => void },
+  dir: DirConfig,
+  count = 1,
+) {
+  for (let i = 0; i < count; i++) {
+    stdin.write(dir.arrow);
+    if (dir.dy === 0) stdin.write(dir.arrow);
+  }
+}
+
+function replayMoves(
+  stdin: { write: (s: string) => void },
+  moves: { dx: number; dy: number }[],
+) {
+  let facing: DirectionX | null = null;
+  for (const { dx, dy } of moves) {
+    if (dy !== 0) {
+      stdin.write(dy === -1 ? ARROW.up : ARROW.down);
+    } else {
+      const dir = dx === 1 ? DirectionX.Right : DirectionX.Left;
+      const arrow = dx === 1 ? ARROW.right : ARROW.left;
+      if (facing !== dir) {
+        stdin.write(arrow);
+        facing = dir;
+      }
+      stdin.write(arrow);
+    }
+  }
+}
+
+function iRobot() {
+  return makeRobot(art_L, DirectionX.Right, "I");
+}
+function jRobot(name = "J") {
+  return makeRobot(art_J, DirectionX.Right, name);
+}
+
+// bounding box of art_irregular: 8 wide × 5 tall
+const ART_W = 8;
+const ART_H = 5;
+
+afterEach(resetMocks);
 
 function renderThreeRobots(selected = 0) {
   return renderRobotGame({
@@ -84,12 +174,6 @@ describe("RobotGame", () => {
 
   beforeAll(() => {
     expect(allRobotArts.length).toBeGreaterThanOrEqual(rawRobots.length);
-  });
-
-  afterEach(() => {
-    cleanup();
-    mockPlaySound.mockClear();
-    mockNavigate.mockClear();
   });
 
   it("renders the first robot ASCII art", async () => {
@@ -525,7 +609,6 @@ describe("RobotGame", () => {
       });
 
       frames.push(stripAnsi(lastFrame() ?? ""));
-      cleanup();
 
       // As soon as we see two different frames, randomness is confirmed
       if (frames.length >= 2 && new Set(frames).size > 1) break;
@@ -704,13 +787,11 @@ describe("RobotGame", () => {
     function expectError(props: Record<string, unknown>, pattern?: RegExp) {
       const { hasError } = renderRobotGameExpectError(props, pattern);
       expect(hasError).toBe(true);
-      cleanup();
     }
 
     function expectNoError(props: Record<string, unknown>) {
       const { hasError } = renderRobotGameExpectNoError(props);
       expect(hasError).toBe(false);
-      cleanup();
     }
 
     it("errors if initialSelected is set when initialRobot is a single Robot", () => {
@@ -760,7 +841,7 @@ describe("RobotGame", () => {
       });
     });
 
-    it.skip("[deprecated] errors if initial robot bboxes overlap", () => {
+    it("errors if initial robot characters overlap", () => {
       expectError(
         {
           initialRobot: [robotA, robotB],
@@ -908,26 +989,36 @@ describe("RobotGame", () => {
       });
     });
 
-    it.skip("[deprecated] plays wrong.mp3 when moving into another robot's bounding box", async () => {
-      // robotA (15w) at x=0, robotB at x=15 — touching, no gap.
-      // Moving robotA right (x=0 -> x=1) would overlap with robotB.
+    it("plays wrong.mp3 when pushing another robot out of bounds", async () => {
+      // art_1x1 robots: A at right edge minus 1, B at right edge.
+      // Moving A right pushes B out of bounds.
+      const rA = new Robot({ str: art_1x1, direction: DirectionX.Right, name: "A" });
+      const rB = new Robot({ str: art_1x1, direction: DirectionX.Right, name: "B" });
+      const bx = WINDOW_WIDTH - 1;
+      const ax = bx - 1;
+
       const { lastFrame, stdin } = renderRobotGame({
-        initialRobot: [robotA, robotB],
+        initialRobot: [rA, rB],
         initialSelected: 0,
-        initialX: [0, 15],
-        initialY: [0, 0],
+        initialX: [ax, bx],
+        initialY: [5, 5],
       });
 
       await vi.waitFor(() => {
-        expect(countArtOccurrences(lastFrame() ?? "", robotAArt)).toBe(1);
+        expect(findArtPositions(lastFrame() ?? "", art_1x1).length).toBe(2);
       });
 
-      // robotA already faces right — press right to attempt move
       mockPlaySound.mockClear();
       stdin.write("\x1B[C");
+
       await vi.waitFor(() => {
         expect(mockPlaySound).toHaveBeenCalledWith("wrong.mp3");
       });
+
+      // Neither robot moved.
+      const p = findArtPositions(lastFrame() ?? "", art_1x1);
+      expect(p).toContainEqual({ x: ax, y: 5 });
+      expect(p).toContainEqual({ x: bx, y: 5 });
     });
 
     it("plays wrong.mp3 on over-exploded robots for action keys", async () => {
@@ -1127,4 +1218,625 @@ describe("RobotGame", () => {
       expect(Math.abs(artCentre - nameCentre)).toBeLessThanOrEqual(1);
     }
   });
+});
+
+describe("irregular robot bounding box constrains movement", () => {
+  it.each([
+    {
+      edge: "right",
+      x: WINDOW_WIDTH - ART_W,
+      y: 5,
+      arrow: ARROW.right,
+      dir: DirectionX.Right,
+      needsTurn: false,
+    },
+    {
+      edge: "left",
+      x: 0,
+      y: 5,
+      arrow: ARROW.left,
+      dir: DirectionX.Left,
+      needsTurn: false,
+    },
+    {
+      edge: "bottom",
+      x: 5,
+      y: WINDOW_HEIGHT - ART_H,
+      arrow: ARROW.down,
+      dir: DirectionX.Right,
+      needsTurn: false,
+    },
+    {
+      edge: "top",
+      x: 5,
+      y: 0,
+      arrow: ARROW.up,
+      dir: DirectionX.Right,
+      needsTurn: false,
+    },
+  ])(
+    "cannot move past the $edge edge of the window",
+    async ({ x, y, arrow, dir }) => {
+      const robot = new Robot({
+        str: art_irregular,
+        direction: dir,
+        name: "A",
+      });
+
+      const { lastFrame, stdin } = renderRobotGame({
+        initialRobot: robot,
+        initialX: x,
+        initialY: y,
+      });
+
+      await vi.waitFor(() => {
+        const pos = findArtPositions(lastFrame() ?? "", art_irregular);
+        expect(pos).toContainEqual({ x, y });
+      });
+
+      mockPlaySound.mockClear();
+
+      stdin.write(arrow);
+
+      await vi.waitFor(() => {
+        expect(mockPlaySound).toHaveBeenCalledWith("wrong.mp3");
+      });
+
+      const pos = findArtPositions(lastFrame() ?? "", art_irregular);
+      expect(pos).toContainEqual({ x, y });
+    },
+  );
+});
+
+describe("single block push", () => {
+  it.each(DIRS)("pushes B $name", async (dir) => {
+    const rA = makeRobot(art_1x1, dir.initialDir, "A");
+    const rB = makeRobot(art_1x1, dir.initialDir, "B");
+    const ax = 5,
+      ay = 5;
+    const bx = ax + dir.dx,
+      by = ay + dir.dy;
+
+    const { lastFrame, stdin } = renderRobotGame({
+      initialRobot: [rA, rB],
+      initialSelected: 0,
+      initialX: [ax, bx],
+      initialY: [ay, by],
+    });
+    await vi.waitFor(() => {
+      expect(findArtPositions(lastFrame() ?? "", art_1x1).length).toBe(2);
+    });
+
+    move(stdin, dir);
+
+    await vi.waitFor(() => {
+      const p = findArtPositions(lastFrame() ?? "", art_1x1);
+      expect(p).toContainEqual({ x: ax + dir.dx, y: ay + dir.dy });
+      expect(p).toContainEqual({ x: bx + dir.dx, y: by + dir.dy });
+    });
+  });
+});
+
+describe("single block push — no window space", () => {
+  it.each(DIRS)("cannot push B $name at window edge", async (dir) => {
+    const rA = makeRobot(art_1x1, dir.initialDir, "A");
+    const rB = makeRobot(art_1x1, dir.initialDir, "B");
+    const bx = dir.dx === 1 ? edgePos(1, WINDOW_WIDTH) : dir.dx === -1 ? 0 : 5;
+    const by = dir.dy === 1 ? edgePos(1, WINDOW_HEIGHT) : dir.dy === -1 ? 0 : 5;
+    const ax = bx - dir.dx,
+      ay = by - dir.dy;
+
+    const { lastFrame, stdin } = renderRobotGame({
+      initialRobot: [rA, rB],
+      initialSelected: 0,
+      initialX: [ax, bx],
+      initialY: [ay, by],
+    });
+    await vi.waitFor(() => {
+      expect(findArtPositions(lastFrame() ?? "", art_1x1).length).toBe(2);
+    });
+
+    mockPlaySound.mockClear();
+    move(stdin, dir);
+
+    await vi.waitFor(() => {
+      expect(mockPlaySound).toHaveBeenCalledWith("wrong.mp3");
+    });
+    const p = findArtPositions(lastFrame() ?? "", art_1x1);
+    expect(p).toContainEqual({ x: ax, y: ay });
+    expect(p).toContainEqual({ x: bx, y: by });
+  });
+});
+
+describe("simultaneous parallel block push", () => {
+  it.each(DIRS)("C pushes A and B $name", async (dir) => {
+    const rC = makeRobot(art_2x2, dir.initialDir, "C");
+    const rA = makeRobot(art_1x1, dir.initialDir, "A");
+    const rB = makeRobot(art_1x1, dir.initialDir, "B");
+    const cx = 5,
+      cy = 5;
+    let ax: number, ay: number, bx: number, by: number;
+    if (dir.dx !== 0) {
+      const col = dir.dx === 1 ? cx + 2 : cx - 1;
+      ax = col;
+      ay = cy;
+      bx = col;
+      by = cy + 1;
+    } else {
+      const row = dir.dy === 1 ? cy + 2 : cy - 1;
+      ax = cx;
+      ay = row;
+      bx = cx + 1;
+      by = row;
+    }
+
+    const { lastFrame, stdin } = renderRobotGame({
+      initialRobot: [rC, rA, rB],
+      initialSelected: 0,
+      initialX: [cx, ax, bx],
+      initialY: [cy, ay, by],
+    });
+    await vi.waitFor(() => {
+      expect(lastFrame()).toBeDefined();
+    });
+
+    move(stdin, dir);
+
+    await vi.waitFor(() => {
+      const p = findArtPositions(lastFrame() ?? "", art_1x1);
+      expect(p).toContainEqual({ x: ax + dir.dx, y: ay + dir.dy });
+      expect(p).toContainEqual({ x: bx + dir.dx, y: by + dir.dy });
+    });
+  });
+});
+
+describe("single block pull by engulfing robot", () => {
+  it.each(DIRS)("A pulls D $name", async (dir) => {
+    const rA = makeRobot(art_1x1, dir.initialDir, "A");
+    const rD = makeRobot(art_3x3_hollow, dir.initialDir, "D");
+    const ddx = 5,
+      ddy = 5;
+    const ax = ddx + 1,
+      ay = ddy + 1;
+
+    const { lastFrame, stdin } = renderRobotGame({
+      initialRobot: [rA, rD],
+      initialSelected: 0,
+      initialX: [ax, ddx],
+      initialY: [ay, ddy],
+    });
+    await vi.waitFor(() => {
+      expect(lastFrame()).toBeDefined();
+    });
+
+    move(stdin, dir);
+
+    await vi.waitFor(() => {
+      const p = findArtPositions(lastFrame() ?? "", art_3x3_hollow);
+      expect(p).toContainEqual({ x: ddx + dir.dx, y: ddy + dir.dy });
+    });
+  });
+});
+
+describe("self-intersecting bounding boxes", () => {
+  it("does not error when A is inside D", () => {
+    const rA = makeRobot(art_1x1, DirectionX.Right, "A");
+    const rD = makeRobot(art_3x3_hollow, DirectionX.Right, "D");
+    const { hasError } = renderRobotGameExpectNoError({
+      initialRobot: [rA, rD],
+      initialSelected: 0,
+      initialX: [6, 5],
+      initialY: [6, 5],
+    });
+    expect(hasError).toBe(false);
+  });
+});
+
+describe("single block pull — no window space", () => {
+  it.each(DIRS)("A cannot pull D $name at window edge", async (dir) => {
+    const rA = makeRobot(art_1x1, dir.initialDir, "A");
+    const rD = makeRobot(art_3x3_hollow, dir.initialDir, "D");
+    const ddx = dir.dx === 1 ? edgePos(3, WINDOW_WIDTH) : dir.dx === -1 ? 0 : 5;
+    const ddy =
+      dir.dy === 1 ? edgePos(3, WINDOW_HEIGHT) : dir.dy === -1 ? 0 : 5;
+    const ax = ddx + 1,
+      ay = ddy + 1;
+
+    const { lastFrame, stdin } = renderRobotGame({
+      initialRobot: [rA, rD],
+      initialSelected: 0,
+      initialX: [ax, ddx],
+      initialY: [ay, ddy],
+    });
+    await vi.waitFor(() => {
+      expect(lastFrame()).toBeDefined();
+    });
+
+    mockPlaySound.mockClear();
+    move(stdin, dir);
+
+    await vi.waitFor(() => {
+      expect(mockPlaySound).toHaveBeenCalledWith("wrong.mp3");
+    });
+    const p = findArtPositions(lastFrame() ?? "", art_3x3_hollow);
+    expect(p).toContainEqual({ x: ddx, y: ddy });
+  });
+});
+
+describe("simultaneous sequential block push", () => {
+  it.each(DIRS)("A pushes B and E $name", async (dir) => {
+    const rA = makeRobot(art_1x1, dir.initialDir, "A");
+    const rB = makeRobot(art_1x1, dir.initialDir, "B");
+    const rE = makeRobot(art_1x1, dir.initialDir, "E");
+    const ax = 10,
+      ay = 10;
+    const bx = ax + dir.dx,
+      by = ay + dir.dy;
+    const ex = bx + dir.dx,
+      ey = by + dir.dy;
+
+    const { lastFrame, stdin } = renderRobotGame({
+      initialRobot: [rA, rB, rE],
+      initialSelected: 0,
+      initialX: [ax, bx, ex],
+      initialY: [ay, by, ey],
+    });
+    await vi.waitFor(() => {
+      expect(findArtPositions(lastFrame() ?? "", art_1x1).length).toBe(3);
+    });
+
+    move(stdin, dir);
+
+    await vi.waitFor(() => {
+      const p = findArtPositions(lastFrame() ?? "", art_1x1);
+      expect(p).toContainEqual({ x: ax + dir.dx, y: ay + dir.dy });
+      expect(p).toContainEqual({ x: bx + dir.dx, y: by + dir.dy });
+      expect(p).toContainEqual({ x: ex + dir.dx, y: ey + dir.dy });
+    });
+  });
+});
+
+describe("parallel 2-block push -> simultaneous push on single block", () => {
+  it.each(DIRS)("C pushes A, B and F $name", async (dir) => {
+    const rC = makeRobot(art_2x2, dir.initialDir, "C");
+    const rA = makeRobot(art_1x1, dir.initialDir, "A");
+    const rB = makeRobot(art_1x1, dir.initialDir, "B");
+    const rF = makeRobot(art_2x2, dir.initialDir, "F");
+    const cx = 5,
+      cy = 5;
+    let ax: number, ay: number, bx: number, by: number, fx: number, fy: number;
+    if (dir.dx !== 0) {
+      const col = dir.dx === 1 ? cx + 2 : cx - 1;
+      ax = col;
+      ay = cy;
+      bx = col;
+      by = cy + 1;
+      fx = dir.dx === 1 ? col + 1 : col - 2;
+      fy = cy;
+    } else {
+      const row = dir.dy === 1 ? cy + 2 : cy - 1;
+      ax = cx;
+      ay = row;
+      bx = cx + 1;
+      by = row;
+      fx = cx;
+      fy = dir.dy === 1 ? row + 1 : row - 2;
+    }
+
+    const { lastFrame, stdin } = renderRobotGame({
+      initialRobot: [rC, rA, rB, rF],
+      initialSelected: 0,
+      initialX: [cx, ax, bx, fx],
+      initialY: [cy, ay, by, fy],
+    });
+    await vi.waitFor(() => {
+      expect(lastFrame()).toBeDefined();
+    });
+
+    move(stdin, dir);
+
+    await vi.waitFor(() => {
+      const p = findArtPositions(lastFrame() ?? "", art_2x2);
+      expect(p).toContainEqual({ x: cx + dir.dx, y: cy + dir.dy });
+      expect(p).toContainEqual({ x: fx + dir.dx, y: fy + dir.dy });
+    });
+  });
+});
+
+describe("sequential block push -> parallel block push", () => {
+  it.each(DIRS)("A pushes C, B and E $name", async (dir) => {
+    const rA = makeRobot(art_1x1, dir.initialDir, "A");
+    const rC = makeRobot(art_2x2, dir.initialDir, "C");
+    const rB = makeRobot(art_1x1, dir.initialDir, "B");
+    const rE = makeRobot(art_1x1, dir.initialDir, "E");
+    const ax = 10,
+      ay = 10;
+    let cx: number, cy: number, bx: number, by: number, ex: number, ey: number;
+    if (dir.dx !== 0) {
+      cx = dir.dx === 1 ? ax + 1 : ax - 2;
+      cy = ay;
+      const far = dir.dx === 1 ? cx + 2 : cx - 1;
+      bx = far;
+      by = cy;
+      ex = far;
+      ey = cy + 1;
+    } else {
+      cx = ax;
+      cy = dir.dy === 1 ? ay + 1 : ay - 2;
+      const far = dir.dy === 1 ? cy + 2 : cy - 1;
+      bx = cx;
+      by = far;
+      ex = cx + 1;
+      ey = far;
+    }
+
+    const { lastFrame, stdin } = renderRobotGame({
+      initialRobot: [rA, rC, rB, rE],
+      initialSelected: 0,
+      initialX: [ax, cx, bx, ex],
+      initialY: [ay, cy, by, ey],
+    });
+    await vi.waitFor(() => {
+      expect(lastFrame()).toBeDefined();
+    });
+
+    move(stdin, dir);
+
+    await vi.waitFor(() => {
+      const p = findArtPositions(lastFrame() ?? "", art_1x1);
+      expect(p).toContainEqual({ x: ax + dir.dx, y: ay + dir.dy });
+      expect(p).toContainEqual({ x: bx + dir.dx, y: by + dir.dy });
+      expect(p).toContainEqual({ x: ex + dir.dx, y: ey + dir.dy });
+    });
+  });
+});
+
+describe("self-intersection with disjoint robot art", () => {
+  it("G completes a loop returning to its original position", async () => {
+    const rG = makeRobot(art_disjoint, DirectionX.Left, "G");
+    const rH = makeRobot(art_disjoint, DirectionX.Left, "H");
+    const gx = 1,
+      gy = 1,
+      hx = 1,
+      hy = 2;
+
+    const { lastFrame, stdin } = renderRobotGame({
+      initialRobot: [rG, rH],
+      initialSelected: 0,
+      initialX: [gx, hx],
+      initialY: [gy, hy],
+    });
+    await vi.waitFor(() => {
+      expect(lastFrame()).toBeDefined();
+    });
+
+    stdin.write(ARROW.left);
+    stdin.write(ARROW.down);
+    stdin.write(ARROW.down);
+    stdin.write(ARROW.right);
+    stdin.write(ARROW.right);
+    stdin.write(ARROW.up);
+    stdin.write(ARROW.up);
+
+    await vi.waitFor(() => {
+      const p = findArtPositions(lastFrame() ?? "", art_disjoint);
+      expect(p).toContainEqual({ x: gx, y: gy });
+    });
+  });
+});
+
+describe("maze escape", () => {
+  it("robot A can escape maze A", async () => {
+    const rMaze = makeRobot(art_maze, DirectionX.Right, "Maze");
+    const rA = makeRobot(art_1x1, DirectionX.Right, "A");
+    const mx = 0,
+      my = 0;
+    const ax = mx + MAZE_A_START.x,
+      ay = my + MAZE_A_START.y;
+    const path = solveMaze(art_maze, MAZE_A_START.x, MAZE_A_START.y);
+    expect(path).not.toBeNull();
+
+    const { lastFrame, stdin } = renderRobotGame({
+      initialRobot: [rMaze, rA],
+      initialSelected: 1,
+      initialX: [mx, ax],
+      initialY: [my, ay],
+    });
+    await vi.waitFor(() => {
+      expect(lastFrame()).toBeDefined();
+    });
+
+    let ex = ax,
+      ey = ay;
+    for (const step of path!) {
+      ex += step.dx;
+      ey += step.dy;
+    }
+
+    replayMoves(stdin, path!);
+
+    const mazeW = Math.max(...art_maze.split("\n").map((l) => l.length));
+    const mazeH = art_maze.split("\n").length;
+    expect(ex < mx || ex >= mx + mazeW || ey < my || ey >= my + mazeH).toBe(
+      true,
+    );
+
+    await vi.waitFor(() => {
+      expect(frameContainsArt(lastFrame() ?? "", art_maze)).toBe(true);
+    });
+  });
+
+  it("solution uses at most 20 steps per direction", () => {
+    const path = solveMaze(art_maze, MAZE_A_START.x, MAZE_A_START.y);
+    expect(path).not.toBeNull();
+    let run = 0,
+      prev = "";
+    for (const step of path!) {
+      const key = `${step.dx},${step.dy}`;
+      run = key === prev ? run + 1 : 1;
+      prev = key;
+      expect(run).toBeLessThanOrEqual(20);
+    }
+  });
+});
+
+describe("overlapping bounding box rendering", () => {
+  it.each([
+    { order: "I then J", first: "I" as const },
+    { order: "J then I", first: "J" as const },
+  ])("I and J fully visible ($order)", async ({ first }) => {
+    const robots = first === "I" ? [iRobot(), jRobot()] : [jRobot(), iRobot()];
+    const xs = first === "I" ? [0, 0] : [0, 0];
+    const ys = first === "I" ? [0, 1] : [1, 0];
+
+    const { lastFrame } = renderRobotGame({
+      initialRobot: robots,
+      initialSelected: 0,
+      initialX: xs,
+      initialY: ys,
+    });
+
+    await vi.waitFor(() => {
+      const frame = lastFrame() ?? "";
+      expect(frameContainsArt(frame, art_L)).toBe(true);
+      expect(frameContainsArt(frame, art_J)).toBe(true);
+    });
+  });
+
+  const perms = [
+    [0, 1, 2],
+    [0, 2, 1],
+    [1, 0, 2],
+    [1, 2, 0],
+    [2, 0, 1],
+    [2, 1, 0],
+  ];
+  it.each(
+    perms.map((p) => ({
+      label: p.map((i) => ["I", "J1", "J2"][i]).join(", "),
+      perm: p,
+    })),
+  )("I, J1, J2 fully visible ($label)", async ({ perm }) => {
+    const all = [iRobot(), jRobot("J1"), jRobot("J2")];
+    const allX = [1, 0, 1],
+      allY = [0, 1, 2];
+    const ordered = perm.map((i) => all[i]);
+    const orderedX = perm.map((i) => allX[i]);
+    const orderedY = perm.map((i) => allY[i]);
+
+    const { lastFrame } = renderRobotGame({
+      initialRobot: ordered,
+      initialSelected: 0,
+      initialX: orderedX,
+      initialY: orderedY,
+    });
+
+    await vi.waitFor(() => {
+      const frame = lastFrame() ?? "";
+      expect(frameContainsArt(frame, art_L)).toBe(true);
+      expect(frameContainsArt(frame, art_J)).toBe(true);
+    });
+  });
+});
+
+describe("staircase bbox overlap (K)", () => {
+  const K_SETUPS = [
+    {
+      name: "right",
+      dx: 1,
+      dy: 0,
+      arrow: ARROW.right,
+      dir: DirectionX.Right,
+      k1: { x: WINDOW_WIDTH - 6, y: 5 },
+      k2: { x: WINDOW_WIDTH - 3, y: 5 },
+    },
+    {
+      name: "left",
+      dx: -1,
+      dy: 0,
+      arrow: ARROW.left,
+      dir: DirectionX.Left,
+      k1: { x: 3, y: 5 },
+      k2: { x: 0, y: 5 },
+    },
+    {
+      name: "down",
+      dx: 0,
+      dy: 1,
+      arrow: ARROW.down,
+      dir: DirectionX.Right,
+      k1: { x: 5, y: WINDOW_HEIGHT - 4 },
+      k2: { x: 4, y: WINDOW_HEIGHT - 2 },
+    },
+    {
+      name: "up",
+      dx: 0,
+      dy: -1,
+      arrow: ARROW.up,
+      dir: DirectionX.Right,
+      k1: { x: 5, y: 2 },
+      k2: { x: 6, y: 0 },
+    },
+  ];
+
+  it.each(K_SETUPS)(
+    "K1 can overlap K2 bounding box moving $name",
+    async ({ arrow, dir, k1, k2, dx, dy }) => {
+      const rK1 = makeRobot(art_K, dir, "K1");
+      const rK2 = makeRobot(art_K, dir, "K2");
+
+      const { lastFrame, stdin } = renderRobotGame({
+        initialRobot: [rK1, rK2],
+        initialSelected: 0,
+        initialX: [k1.x, k2.x],
+        initialY: [k1.y, k2.y],
+      });
+
+      await vi.waitFor(() => {
+        expect(lastFrame()).toBeDefined();
+      });
+
+      stdin.write(arrow);
+
+      await vi.waitFor(() => {
+        const p = findArtPositions(lastFrame() ?? "", art_K);
+        expect(p).toContainEqual({ x: k1.x + dx, y: k1.y + dy });
+        expect(p).toContainEqual({ x: k2.x, y: k2.y });
+      });
+    },
+  );
+
+  it.each(K_SETUPS)(
+    "K1 cannot push K2 outside of the window moving $name",
+    async ({ arrow, dir, k1, k2, dx, dy }) => {
+      const rK1 = makeRobot(art_K, dir, "K1");
+      const rK2 = makeRobot(art_K, dir, "K2");
+
+      const { lastFrame, stdin } = renderRobotGame({
+        initialRobot: [rK1, rK2],
+        initialSelected: 0,
+        initialX: [k1.x, k2.x],
+        initialY: [k1.y, k2.y],
+      });
+
+      await vi.waitFor(() => {
+        expect(lastFrame()).toBeDefined();
+      });
+
+      stdin.write(arrow);
+
+      await vi.waitFor(() => {
+        const p = findArtPositions(lastFrame() ?? "", art_K);
+        expect(p).toContainEqual({ x: k1.x + dx, y: k1.y + dy });
+      });
+
+      stdin.write(arrow);
+
+      await vi.waitFor(() => {
+        const p = findArtPositions(lastFrame() ?? "", art_K);
+        expect(p).toContainEqual({ x: k1.x + dx, y: k1.y + dy });
+        expect(p).toContainEqual({ x: k2.x, y: k2.y });
+      });
+    },
+  );
 });

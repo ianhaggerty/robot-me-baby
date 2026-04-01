@@ -1,6 +1,6 @@
 import { generateName } from "../utility/string.js";
 import { DirectionX } from "../utility/enums.js";
-import { bboxInBounds, type BBox } from "../utility/bbox.js";
+import { bboxInBounds, type BBox, type Position } from "../utility/bbox.js";
 import {
   hasCharacterCollision,
   type PositionedArt,
@@ -22,7 +22,7 @@ export const robotTemplates = rawRobots.map(
 
 export const explosions = rawExplosions.map((raw) => new Explosion(raw));
 
-export type RobotEntry = { robot: Robot; x: number; y: number };
+export type RobotEntry = Position & { robot: Robot };
 
 export type RobotGameProps = {
   initialRobot?: Robot[] | Robot;

@@ -1,6 +1,9 @@
-export type BBox = {
+export type Position = {
   x: number;
   y: number;
+};
+
+export type BBox = Position & {
   width: number;
   height: number;
 };
@@ -37,12 +40,12 @@ export function bboxIsValid(
   return others.every((other) => !bboxOverlap(bbox, other));
 }
 
-export function findValidPosition(
+export function findRandomPosition(
   width: number,
   height: number,
-  others: BBox[],
   windowWidth: number,
   windowHeight: number,
+  isValid: (x: number, y: number) => boolean,
   maxAttempts = 1000,
 ): { x: number; y: number } | null {
   const maxX = windowWidth - width;
@@ -52,10 +55,7 @@ export function findValidPosition(
   for (let i = 0; i < maxAttempts; i++) {
     const x = Math.floor(Math.random() * (maxX + 1));
     const y = Math.floor(Math.random() * (maxY + 1));
-    const bbox: BBox = { x, y, width, height };
-    if (bboxIsValid(bbox, others, windowWidth, windowHeight)) {
-      return { x, y };
-    }
+    if (isValid(x, y)) return { x, y };
   }
   return null;
 }

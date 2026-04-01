@@ -63,6 +63,10 @@ export const maxWidth = (str: string): number => {
   return Math.max(...str.split("\n").map((line) => line.length));
 };
 
+export const lineCount = (str: string): number => {
+  return str.split("\n").length;
+};
+
 export const swapPalindromes = (str: string): string => {
   const size = str.length;
   const newStr = new Array(size);

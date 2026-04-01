@@ -1,7 +1,7 @@
 import React from "react";
 import { vi } from "vitest";
 import { render, cleanup } from "ink-testing-library";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useNavigate } from "react-router";
 import RobotGame from "../pages/RobotGame.js";
 
 import Robot from "../models/Robot.js";
@@ -10,6 +10,31 @@ import { DirectionX } from "./enums.js";
 import { Color } from "../assets/colors.js";
 import rawRobots from "../assets/robots.js";
 import rawExplosions from "../assets/explosions.js";
+import { playSound } from "../assets/sounds.js";
+import { readArt } from "../assets/readArt.js";
+
+export const art_1x1 = readArt("test/shapes/1x1.txt");
+export const art_2x2 = readArt("test/shapes/2x2.txt");
+export const art_3x3_hollow = readArt("test/shapes/3x3-hollow.txt");
+export const art_disjoint = readArt("test/shapes/disjoint.txt");
+export const art_L = readArt("test/shapes/L.txt");
+export const art_J = readArt("test/shapes/J.txt");
+export const art_K = readArt("test/shapes/K-staircase.txt");
+export const art_irregular = readArt("test/shapes/irregular.txt");
+export const art_maze = readArt("test/maze/maze-1.txt");
+export const MAZE_A_START = { x: 7, y: 9 } as const;
+
+// Mock references — these resolve to the vi.fn() instances created by
+// each test file's vi.mock() factories. The factories must NOT dynamically
+// import this file (circular dep through RobotGame → sounds.js).
+export const mockPlaySound = vi.mocked(playSound);
+export const mockNavigate = useNavigate() as unknown as ReturnType<typeof vi.fn>;
+
+export function resetMocks() {
+  cleanup();
+  mockPlaySound.mockClear();
+  mockNavigate.mockClear();
+}
 
 // eslint-disable-next-line no-control-regex
 const ANSI_REGEX =
@@ -347,4 +372,54 @@ export function renderRobotGameExpectNoError(props: Record<string, unknown>) {
   const { lastFrame } = renderRobotGame(props);
   const frame = stripAnsi(lastFrame() ?? "");
   return { frame, hasError: frame.includes("ERROR") };
+}
+
+/**
+ * BFS maze solver. Given a maze art string and a start position (in maze
+ * coordinates), returns a sequence of {dx, dy} moves to reach any cell
+ * adjacent to (but outside) the maze bounding box. Returns null if no
+ * path exists.
+ */
+export function solveMaze(
+  mazeArt: string,
+  startX: number,
+  startY: number,
+): { dx: number; dy: number }[] | null {
+  const lines = mazeArt.split("\n");
+  const h = lines.length;
+  const w = Math.max(...lines.map((l) => l.length));
+
+  const isWall = (x: number, y: number): boolean => {
+    if (y < 0 || y >= h || x < 0 || x >= w) return false;
+    return (lines[y]?.[x] ?? " ") !== " ";
+  };
+
+  const isExit = (x: number, y: number): boolean =>
+    x < 0 || x >= w || y < 0 || y >= h;
+
+  type State = { x: number; y: number; path: { dx: number; dy: number }[] };
+  const queue: State[] = [{ x: startX, y: startY, path: [] }];
+  const visited = new Set<string>();
+  visited.add(`${startX},${startY}`);
+
+  const dirs = [
+    { dx: 1, dy: 0 },
+    { dx: -1, dy: 0 },
+    { dx: 0, dy: 1 },
+    { dx: 0, dy: -1 },
+  ];
+
+  while (queue.length > 0) {
+    const { x, y, path } = queue.shift()!;
+    for (const { dx, dy } of dirs) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (isExit(nx, ny)) return [...path, { dx, dy }];
+      const key = `${nx},${ny}`;
+      if (visited.has(key) || isWall(nx, ny)) continue;
+      visited.add(key);
+      queue.push({ x: nx, y: ny, path: [...path, { dx, dy }] });
+    }
+  }
+  return null;
 }

@@ -1,11 +1,12 @@
-import { bboxOverlap, bboxInBounds } from "./bbox.js";
+import {
+  bboxOverlap,
+  bboxInBounds,
+  findRandomPosition,
+  type BBox,
+} from "./bbox.js";
 
-export type PositionedArt = {
+export type PositionedArt = BBox & {
   art: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
 };
 
 /**
@@ -68,19 +69,15 @@ export function findValidPositionByCharacter(
   windowHeight: number,
   maxAttempts = 1000,
 ): { x: number; y: number } | null {
-  const maxX = windowWidth - width;
-  const maxY = windowHeight - height;
-  if (maxX < 0 || maxY < 0) return null;
-
-  for (let i = 0; i < maxAttempts; i++) {
-    const x = Math.floor(Math.random() * (maxX + 1));
-    const y = Math.floor(Math.random() * (maxY + 1));
-    const target: PositionedArt = { art, x, y, width, height };
-    if (isCharacterValid(target, others, windowWidth, windowHeight)) {
-      return { x, y };
-    }
-  }
-  return null;
+  return findRandomPosition(
+    width,
+    height,
+    windowWidth,
+    windowHeight,
+    (x, y) =>
+      isCharacterValid({ art, x, y, width, height }, others, windowWidth, windowHeight),
+    maxAttempts,
+  );
 }
 
 /**

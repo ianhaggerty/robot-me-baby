@@ -17,6 +17,7 @@ import {
 
 import RobotCmpt from "../components/Robot.js";
 import ExplosionCmpt from "../components/Explosion.js";
+import TransparentArt from "../components/TransparentArt.js";
 import SideMenu from "../components/SideMenu.js";
 import colors from "../assets/colors.js";
 
@@ -34,25 +35,6 @@ import {
   type RobotEntry,
   type RobotGameProps,
 } from "./RobotGame.helpers.js";
-
-function getNonSpaceSegments(
-  line: string,
-): { start: number; text: string }[] {
-  const segments: { start: number; text: string }[] = [];
-  let i = 0;
-  while (i < line.length) {
-    if (line[i] === " ") {
-      i++;
-      continue;
-    }
-    const start = i;
-    while (i < line.length && line[i] !== " ") {
-      i++;
-    }
-    segments.push({ start, text: line.substring(start, i) });
-  }
-  return segments;
-}
 
 const RobotGame = (props: RobotGameProps = {}) => {
   const [columns, rows] = useStdoutDimensions();
@@ -325,26 +307,17 @@ const RobotGame = (props: RobotGameProps = {}) => {
               {/* Art on top (higher z-order) — render only non-space segments
                   so that spaces are transparent and overlapping bounding boxes
                   display correctly regardless of scene order. */}
-              {robots.flatMap((entry, i) => {
-                const lines = entry.robot.toString().split("\n");
-                return lines.flatMap((line, ly) =>
-                  getNonSpaceSegments(line).map((seg, si) => (
-                    <Box
-                      key={`art-${i}-${ly}-${si}`}
-                      position="absolute"
-                      marginLeft={entry.x + seg.start}
-                      marginTop={entry.y + ly}
-                    >
-                      <Text
-                        color={entry.robot.color}
-                        dimColor={i !== safeIndex}
-                      >
-                        {seg.text}
-                      </Text>
-                    </Box>
-                  )),
-                );
-              })}
+              {robots.map((entry, i) => (
+                <TransparentArt
+                  key={`art-${i}`}
+                  art={entry.robot.toString()}
+                  x={entry.x}
+                  y={entry.y}
+                  color={entry.robot.color}
+                  dimColor={i !== safeIndex}
+                  keyPrefix={`art-${i}`}
+                />
+              ))}
             </>
           )}
         </Box>

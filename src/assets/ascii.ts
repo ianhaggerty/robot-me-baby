@@ -1,13 +1,5 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import { readArt } from "./readArt.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const artDir = path.resolve(path.dirname(__filename), "..", "..", "art");
-
-const readArt = (file: string) =>
-  fs.readFileSync(path.join(artDir, file), "utf8");
-
-export const ian2 = readArt("ian.txt");
-export const robotMeBaby = readArt("robot-me-baby.txt");
-export const myFace = readArt("my-face.txt");
+export const ian2 = readArt("misc/ian.txt");
+export const robotMeBaby = readArt("misc/robot-me-baby.txt");
+export const myFace = readArt("misc/my-face.txt");

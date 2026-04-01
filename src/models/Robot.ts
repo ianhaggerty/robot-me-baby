@@ -5,6 +5,8 @@ import {
   shuffle,
   transpose,
   swapPalindromes,
+  maxWidth,
+  lineCount,
 } from "../utility/string.js";
 
 export type RobotData = {
@@ -125,11 +127,11 @@ class Robot {
   }
 
   public get height() {
-    return this._str.split("\n").length;
+    return lineCount(this._str);
   }
 
   public get width() {
-    return Math.max(...this._str.split("\n").map((line) => line.length));
+    return maxWidth(this._str);
   }
 
   toString() {
